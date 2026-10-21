@@ -485,11 +485,13 @@ Host cron line (04:17 Hong Kong daily):
 
 ```cron
 CRON_TZ=Asia/Hong_Kong
-17 4 * * * cd /home/funnywai/Tally && ./scripts/backup.sh >> backups/backup.log 2>&1
+17 4 * * * cd /home/funnywai/Tally && mkdir -p backups && ./scripts/backup.sh >> backups/backup.log 2>&1
 ```
 
 `CRON_TZ` is supported by cronie. On Ubuntu's default cron, set the host timezone to
 `Asia/Hong_Kong` (or schedule `17 20 * * *` if the host clock is UTC) and verify with `date`.
+The `mkdir -p backups` is required on a fresh clone because `backups/` is gitignored and the shell
+sets up the log redirect before `backup.sh` runs.
 
 ### Restore
 
@@ -548,6 +550,11 @@ for `web` to be healthy. All services use `restart: unless-stopped` and json-fil
    `http://web:3000`.
 5. Start the stack: `docker compose up -d`.
 6. Verify: `curl -I https://tally.funnywai.tech` and `curl -sS https://tally.funnywai.tech/api/health`.
+7. Add a **Cache Rule** for `tally.funnywai.tech` so `/sw.js`, `/index.html`,
+   `/manifest.webmanifest`, and `/api/*` bypass Cloudflare's default Browser Cache TTL. Without it,
+   Cloudflare rewrites `sw.js` to `Cache-Control: max-age=14400`, which delays service-worker
+   updates. Verify: `curl -sS -D - https://tally.funnywai.tech/sw.js -o /dev/null | grep -i cache-control`
+   must not show `max-age=14400`.
 
 Do **not** use a Quick Tunnel (`trycloudflare.com`): the hostname changes on restart and breaks the
 installed PWA's `start_url`. HTTPS is provided by Cloudflare, which is required for the `Secure`
