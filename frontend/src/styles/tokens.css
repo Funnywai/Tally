@@ -82,6 +82,7 @@
   --target-comfortable: 48px;
   --target-primary: 52px;
   --target-card: 112px;
+  --target-card-wide: 140px;
   --target-numpad: 56px;
 
   --dur-press: 120ms;

@@ -12,6 +12,7 @@ import { useGame } from '../state/GameProvider';
 import { useGameActions } from '../state/useGameActions';
 
 const DIVISORS: readonly (2 | 3 | 4)[] = [4, 3, 2];
+const PLAYER_ROWS: readonly (readonly PlayerIndex[])[] = [[1], [0, 2], [3]];
 
 type DialogKind = 'none' | 'special' | 'food';
 
@@ -57,34 +58,36 @@ export function MaiPage() {
             埋數
           </h1>
         </div>
-        <p className="page-hint">點卡片調整</p>
       </div>
 
       <div className="player-grid">
-        {PLAYER_INDICES.map((index) => {
-          const value = state.accumulated[index];
-          const isMe = index === 3;
-          const tone = value > 0 ? 'is-positive' : value < 0 ? 'is-negative' : 'is-zero';
-          return (
-            <button
-              key={index}
-              type="button"
-              className={`player-card ${isMe ? 'is-me' : ''} ${tone}`}
-              aria-label={`調整 ${state.names[index]} 的分數，目前 ${formatStatMoney(value)}`}
-              onClick={() => setAdjustIndex(index)}
-            >
-              <span className="player-card__name">
-                {state.names[index]}
-                {isMe ? <span className="player-card__me">我</span> : null}
-              </span>
-              <span key={value} className="player-card__score">
-                {formatMoney(value)}
-              </span>
-              <span className="player-card__hint">點擊調整</span>
-              {isMe ? <TallyMark size={72} className="player-card__watermark" /> : null}
-            </button>
-          );
-        })}
+        {PLAYER_ROWS.map((row) => (
+          <div className="player-grid__row" key={row.join('-')}>
+            {row.map((index) => {
+              const value = state.accumulated[index];
+              const isMe = index === 3;
+              const tone = value > 0 ? 'is-positive' : value < 0 ? 'is-negative' : 'is-zero';
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  className={`player-card ${isMe ? 'is-me' : ''} ${tone}`}
+                  aria-label={`調整 ${state.names[index]} 的分數，目前 ${formatStatMoney(value)}`}
+                  onClick={() => setAdjustIndex(index)}
+                >
+                  <span className="player-card__name">
+                    {state.names[index]}
+                    {isMe ? <span className="player-card__me">我</span> : null}
+                  </span>
+                  <span key={value} className="player-card__score">
+                    {formatMoney(value)}
+                  </span>
+                  {isMe ? <TallyMark size={72} className="player-card__watermark" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <div className="mai-actions">
@@ -130,8 +133,6 @@ export function MaiPage() {
           {writing ? '寫入中…' : '寫入小氣簿'}
         </button>
       </div>
-
-      <p className="page-footnote">所有埋數操作都可復原 · 寫入後以小氣簿為準</p>
 
       <Numpad
         open={adjustIndex !== null}
