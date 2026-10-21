@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+data/*.json
+data/**/*.json
+backups/
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+.vitest/
+.codegraph
+.superpowers/
+.omo/

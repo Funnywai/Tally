@@ -1,0 +1,69 @@
+@baseUrl = http://127.0.0.1:3100
+@passcode = replace-with-local-passcode
+@recordId = replace-with-record-uuid
+
+# VS Code REST Client keeps the Set-Cookie from the login request in its cookie
+# jar for this host. Run "Login" once, then the authenticated requests below.
+# For curl, use: curl -c jar.txt -b jar.txt ...
+
+### Health (no auth)
+GET {{baseUrl}}/api/health
+
+### Login (sets mj_session HttpOnly cookie; body is empty)
+# @name login
+POST {{baseUrl}}/api/auth
+Content-Type: application/json
+
+{
+  "passcode": "{{passcode}}"
+}
+
+### 401 example: no cookie
+GET {{baseUrl}}/api/records
+
+### List records (default limit 50, max 200)
+GET {{baseUrl}}/api/records?limit=50
+
+### List records with a cursor from the previous response
+GET {{baseUrl}}/api/records?limit=50&cursor=replace-with-next-cursor
+
+### Create a record (date defaults to Asia/Hong_Kong today)
+POST {{baseUrl}}/api/records
+Content-Type: application/json
+
+{
+  "date": "2026-10-21",
+  "players": [
+    { "name": "閒1", "score": 12.5 },
+    { "name": "閒2", "score": -12.5 },
+    { "name": "閒3", "score": 0 },
+    { "name": "我", "score": 0 }
+  ]
+}
+
+### Patch a record (date and/or players; players replaces the settlement set)
+PATCH {{baseUrl}}/api/records/{{recordId}}
+Content-Type: application/json
+
+{
+  "date": "2026-10-22",
+  "players": [
+    { "playerId": "replace-with-player-uuid", "name": "閒1", "score": 20 },
+    { "playerId": "replace-with-player-uuid", "name": "閒2", "score": -20 }
+  ]
+}
+
+### Delete a record (cascades settlements)
+DELETE {{baseUrl}}/api/records/{{recordId}}
+
+### Players (for datalist)
+GET {{baseUrl}}/api/players
+
+### Stats (year defaults to the current Hong Kong year)
+GET {{baseUrl}}/api/stats?player=閒1&year=2026
+
+### Ranking (all-time, full dataset)
+GET {{baseUrl}}/api/ranking
+
+### Logout (clears the cookie)
+POST {{baseUrl}}/api/auth/logout
