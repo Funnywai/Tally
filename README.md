@@ -130,7 +130,7 @@ each test. `LOG_LEVEL=silent` is set by the Vitest config.
 
 ```bash
 cp .env.example .env
-# fill in values; for local HTTP set COOKIE_SECURE=false
+# fill in values; for local HTTP set NODE_ENV=development and COOKIE_SECURE=false
 docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build db web
 docker compose ps
 curl -sS http://127.0.0.1:3100/api/health
@@ -138,7 +138,8 @@ curl -sS http://127.0.0.1:3100/api/health
 
 This starts only `db` and `web`. `cloudflared` needs a real `TUNNEL_TOKEN`; do not start it locally
 with the placeholder. The debug override publishes only `127.0.0.1:3100` (web) and
-`127.0.0.1:5433` (db). The base compose file publishes nothing.
+`127.0.0.1:5433` (db). The base compose file publishes nothing. Because production rejects
+`COOKIE_SECURE=false`, local Docker must also set `NODE_ENV=development` in `.env`.
 
 ## Environment variables and secrets
 
@@ -179,7 +180,8 @@ gitignored. The application never logs the passcode, session cookie, or database
 
 The initial migration creates `players`, `games`, `settlements`, and the indexes on
 `games.played_at` and `settlements.player_id`. `games.external_id` is unique for idempotent imports.
-`gen_random_uuid()` is built into PostgreSQL 16.
+`gen_random_uuid()` is built into PostgreSQL 16. A second migration adds a composite
+`(played_at desc, recorded_at desc, id desc)` index for keyset pagination.
 
 ## API contract
 
@@ -196,7 +198,7 @@ Messages may be Traditional Chinese; **codes are the contract**.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `POST` | `/api/auth` | no | `{ passcode }` → `204` + `Set-Cookie: mj_session=...` |
-| `POST` | `/api/auth/logout` | no | Clears the cookie → `204` |
+| `POST` | `/api/auth/logout` | no | Requires `Content-Type: application/json`; clears the cookie → `204` |
 | `GET` | `/api/health` | no | `{ ok, db }`, `Cache-Control: no-store` |
 | `GET` | `/api/records?limit=&cursor=` | yes | Newest first, keyset pagination |
 | `POST` | `/api/records` | yes | Create one game + N settlements |
@@ -219,6 +221,9 @@ body. Passcode comparison is constant-time (SHA-256 + `timingSafeEqual`). Wrong 
 body, and missing cookie all return the same `401 UNAUTHORIZED` response. `POST /api/auth` is rate
 limited to 5 requests per 60 seconds per client IP (`CF-Connecting-IP` when present, otherwise
 `req.ip`); the sixth returns `429` with `Retry-After`.
+
+`POST /api/auth/logout` requires `Content-Type: application/json` (body may be `{}`); this blocks a
+cross-site HTML form from clearing the session cookie.
 
 ### Records
 
@@ -375,8 +380,9 @@ CRON_TZ=Asia/Hong_Kong
 ./scripts/restore.sh backups/tally-YYYYMMDD-HHMMSS.sql.gz --yes
 ```
 
-The script refuses to run without `--yes`, stops `web`, drops and recreates the `public` schema,
-pipes the dump through `psql`, and starts `web` again. Migrations reapply on startup if
+The script refuses to run without `--yes`, verifies the gzip archive, stops `web`, drops and
+recreates the `public` schema, pipes the dump through `psql`, and starts `web` again. If the restore
+fails, `web` remains stopped so it cannot serve an empty schema. Migrations reapply on startup if
 `schema_migrations` was dropped.
 
 **Tested restore evidence (local Docker stack, 2026-10-21):** a marker record was created, backed
@@ -437,7 +443,9 @@ session cookie.
   header and no token in response bodies.
 - `SameSite=Lax` plus JSON-only state-changing requests mitigates CSRF without a separate token.
 - Rate limit: 5 login attempts per 60 seconds per IP. The limiter is in-memory and resets on
-  restart; this is acceptable for a single-instance, single-ledger deployment.
+  restart; this is acceptable for a single-instance, single-ledger deployment. `CF-Connecting-IP` is
+  trusted because `web` publishes no port and is reachable only through `cloudflared`; keep it that
+  way (the debug override is loopback-only).
 - Sessions are stateless. Logout clears the cookie; a copied token remains valid until its 30-day
   expiry. Rotate `SESSION_SECRET` to invalidate every session immediately.
 - Security headers: `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`,

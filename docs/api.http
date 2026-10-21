@@ -65,5 +65,8 @@ GET {{baseUrl}}/api/stats?player=閒1&year=2026
 ### Ranking (all-time, full dataset)
 GET {{baseUrl}}/api/ranking
 
-### Logout (clears the cookie)
+### Logout (JSON content type is required to block cross-site form logout)
 POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{}

@@ -1,3 +1,4 @@
+import type { RequestHandler } from 'express';
 import { Router } from 'express';
 import { clientIp } from '../auth/middleware.js';
 import { passcodeMatches } from '../auth/passcode.js';
@@ -6,6 +7,14 @@ import { serializeClearCookie, serializeSessionCookie, signSession } from '../au
 import type { AppConfig } from '../config.js';
 import { AppError } from '../errors.js';
 import { authBodySchema } from '../schemas.js';
+
+const requireJson: RequestHandler = (req, _res, next) => {
+  if (!req.is('application/json')) {
+    next(new AppError('UNSUPPORTED_MEDIA_TYPE'));
+    return;
+  }
+  next();
+};
 
 export function createAuthRouter(config: AppConfig): Router {
   const router = Router();
@@ -32,7 +41,7 @@ export function createAuthRouter(config: AppConfig): Router {
     res.status(204).end();
   });
 
-  router.post('/logout', (_req, res) => {
+  router.post('/logout', requireJson, (_req, res) => {
     res.setHeader('Set-Cookie', serializeClearCookie(config.cookieSecure));
     res.status(204).end();
   });

@@ -5,6 +5,16 @@ export const MAX_NAME_CODE_POINTS = 7;
 export const MIN_PATCH_PLAYERS = 2;
 export const MAX_PATCH_PLAYERS = 8;
 
+function hasControlChar(value: string): boolean {
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0;
+    if (code <= 0x1f || (code >= 0x7f && code <= 0x9f)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function codePointLength(value: string): number {
   return [...value].length;
 }
@@ -15,7 +25,8 @@ export const nameSchema = z
   .refine(
     (value) => codePointLength(value) >= 1 && codePointLength(value) <= MAX_NAME_CODE_POINTS,
     { message: '名稱長度必須為 1–7 個字元' },
-  );
+  )
+  .refine((value) => !hasControlChar(value), { message: '名稱不可包含控制字元' });
 
 export const MIN_SCORE = -999_999_999.9;
 export const MAX_SCORE = 999_999_999.9;
@@ -73,7 +84,12 @@ export const listRecordsQuerySchema = z.object({
 });
 
 export const statsQuerySchema = z.object({
-  player: z.string().trim().min(1).max(255),
+  player: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .refine((value) => !hasControlChar(value), { message: '名稱不可包含控制字元' }),
   year: z
     .string()
     .regex(/^\d{4}$/, { message: '年份格式必須為 YYYY' })

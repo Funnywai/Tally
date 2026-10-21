@@ -107,7 +107,10 @@ status="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$JAR" -c "$JAR" -X DELETE \
 check "DELETE /api/records/:id" 204 "$status"
 
 echo "== logout =="
-status="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$JAR" -c "$JAR" -X POST "$BASE_URL/api/auth/logout")"
+status="$(curl -sS -o "$BODY" -w '%{http_code}' -b "$JAR" -c "$JAR" -X POST \
+  -H 'Content-Type: application/json' \
+  --data '{}' \
+  "$BASE_URL/api/auth/logout")"
 check "POST /api/auth/logout" 204 "$status"
 status="$(curl -sS -o "$BODY" -w '%{http_code}' "$BASE_URL/api/records")"
 check "GET /api/records after logout" 401 "$status"

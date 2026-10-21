@@ -105,7 +105,11 @@ describe('authentication', () => {
     const login = await request(app).post('/api/auth').send({ passcode: TEST_PASSCODE });
     const cookie = sessionCookieFrom(login);
 
-    const logout = await request(app).post('/api/auth/logout').set('Cookie', cookie);
+    const logout = await request(app)
+      .post('/api/auth/logout')
+      .set('Cookie', cookie)
+      .set('Content-Type', 'application/json')
+      .send({});
     expect(logout.status).toBe(204);
     const header = logout.headers['set-cookie'];
     const raw = Array.isArray(header) ? header[0] : header;
@@ -113,6 +117,13 @@ describe('authentication', () => {
 
     const after = await request(app).get('/api/records');
     expect(after.status).toBe(401);
+  });
+
+  it('requires a JSON content type on logout', async () => {
+    const { app } = await createTestApp();
+    const response = await request(app).post('/api/auth/logout');
+    expect(response.status).toBe(415);
+    expect(response.body.error.code).toBe('UNSUPPORTED_MEDIA_TYPE');
   });
 
   it('rejects non-JSON bodies with 415', async () => {

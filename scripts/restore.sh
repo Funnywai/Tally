@@ -25,6 +25,10 @@ if [ ! -f "$file" ]; then
   echo "Backup file not found: $file"
   exit 1
 fi
+if ! gzip -t "$file"; then
+  echo "Backup is not a valid gzip file: $file"
+  exit 1
+fi
 
 cd "$script_dir/.."
 
@@ -36,8 +40,11 @@ docker compose exec -T db sh -c \
   'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "drop schema public cascade; create schema public;"'
 
 echo "Restoring $file ..."
-gunzip -c "$file" | docker compose exec -T db sh -c \
-  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 --single-transaction'
+if ! gunzip -c "$file" | docker compose exec -T db sh -c \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 --single-transaction'; then
+  echo "Restore failed; web remains stopped. Fix the dump and rerun." >&2
+  exit 1
+fi
 
 echo "Starting web..."
 docker compose start web

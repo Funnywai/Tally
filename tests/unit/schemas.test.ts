@@ -26,6 +26,12 @@ describe('boundary schemas', () => {
     expect(nameSchema.safeParse('😀😀😀😀😀😀😀😀').success).toBe(false);
   });
 
+  it('rejects control characters in names and stats queries', () => {
+    expect(nameSchema.safeParse('A\u0000B').success).toBe(false);
+    expect(nameSchema.safeParse('A\nB').success).toBe(false);
+    expect(statsQuerySchema.safeParse({ player: 'A\u0000B' }).success).toBe(false);
+  });
+
   it('accepts finite scores only', () => {
     expect(scoreSchema.safeParse(12.5).success).toBe(true);
     expect(scoreSchema.safeParse(-3).success).toBe(true);
