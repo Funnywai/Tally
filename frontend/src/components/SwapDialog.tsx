@@ -37,7 +37,6 @@ export function SwapDialog({ open, names, onClose, onSwap }: SwapDialogProps) {
     <Sheet
       open={open}
       title="換位"
-      description="交換名稱與分數；兩位都在番數欄時，輸入與輸出會一併交換。"
       onClose={onClose}
       footer={
         <>
@@ -72,7 +71,6 @@ export function SwapDialog({ open, names, onClose, onSwap }: SwapDialogProps) {
           </button>
         ))}
       </div>
-      <p className="dialog-note">其中一位是「我」時，該位在番數欄的輸入、輸出與踢半標記會清空。</p>
     </Sheet>
   );
 }

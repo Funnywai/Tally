@@ -30,7 +30,6 @@ export function RenameDialog({ open, names, onClose, onSave }: RenameDialogProps
     <Sheet
       open={open}
       title="改名"
-      description="最多 7 個字元；留空回復預設名稱。"
       onClose={onClose}
       footer={
         <>
