@@ -101,8 +101,6 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
             {loading ? '驗證中…' : '進入'}
           </button>
         </form>
-
-        <p className="login__note">通行碼只供登入，不會儲存在裝置。</p>
       </section>
     </main>
   );

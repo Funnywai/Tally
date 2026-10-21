@@ -48,7 +48,6 @@ export function FanPage() {
             番數記錄
           </h1>
         </div>
-        <p className="page-hint">1.5× 複利</p>
       </div>
 
       <div className="fan-table">
@@ -128,8 +127,6 @@ export function FanPage() {
           )}
         </fieldset>
       </div>
-
-      <p className="page-footnote">點格輸入 · 空格不計權重 · 負數照算</p>
 
       <Numpad
         open={active !== null}

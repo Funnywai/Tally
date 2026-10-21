@@ -208,19 +208,6 @@
   line-height: 1.2;
 }
 
-.page-hint {
-  font-size: 11px;
-  color: var(--muted);
-  text-align: right;
-  max-width: 15ch;
-}
-
-.page-footnote {
-  margin-top: var(--space-3);
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-}
 
 .bottom-nav {
   position: fixed;

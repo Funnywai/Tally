@@ -43,7 +43,6 @@ export function LedgerPage() {
             小氣簿
           </h1>
         </div>
-        <p className="page-hint">伺服器是唯一真相</p>
       </div>
 
       <div className="segmented segmented--tabs" role="tablist" aria-label="小氣簿分頁">
