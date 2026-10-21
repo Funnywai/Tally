@@ -155,6 +155,7 @@ future desktop surface needs it. No all-caps for prose; micro labels may be uppe
 | `--target-comfortable` | 48px | Inputs, chips |
 | `--target-primary` | 52px | Primary CTA, numpad keys |
 | `--target-card` | 112px | Player cards |
+| `--target-card-wide` | 140px | Mai diamond player cards |
 | `--target-numpad` | 56px | Numpad display |
 | `--radius-hairline` | 2px | Nav indicator |
 | `--radius-2xs` | 4px | 我 badge |
@@ -186,7 +187,8 @@ future desktop surface needs it. No all-caps for prose; micro labels may be uppe
 
 - **Fan:** 3 columns × 7 rows, row-major. Column width ≈ 111px at 375px; input cells `min-height: 44px`;
   output tiles `min-height: 64px`. Names are the column headers.
-- **Mai:** 2 × 2 player cards, each `min-height: 112px`; the 我 card spans the visual hierarchy with a
+- **Mai:** diamond seating — 閒2 top; 閒1 left and 閒3 right; 我 bottom. Cards are
+  `min(45%, 140px)` wide and `min-height: 112px`; the 我 card spans the visual hierarchy with a
   cinnabar border and tally watermark.
 - **Ledger:** single column; date groups are bordered blocks; record rows use an auto-fit inner grid
   (4 columns typical; 2–8 after merges/imports).
@@ -315,9 +317,9 @@ assets. The login screen uses a larger tally watermark at 6% opacity.
 ## 8. Responsive, Accessibility & Debt
 
 ### Responsive
-- 375px: 3-column fan grid, 2×2 mai cards, auto-fit record rows; all targets ≥ 44px.
+- 375px: 3-column fan grid, diamond mai seating (1 / 2 / 1), auto-fit record rows; all targets ≥ 44px.
 - 430px: same layout, more breathing room; shell caps at 480px.
-- Safe areas: top and bottom `env(safe-area-inset-*)`; `100dvh` only; no `100vh`.
+- Safe areas: top and bottom `env(safe-area-inset-*)`; `100dvh` default, with a `100vh`/`100lvh` standalone fallback for the iOS 26 short-viewport bug.
 - Inputs 16px; viewport has no `maximum-scale`.
 
 ### Accessibility
