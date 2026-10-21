@@ -14,7 +14,7 @@ interface EditRecordDialogProps {
   readonly open: boolean;
   readonly record: RecordItem | null;
   readonly onClose: () => void;
-  readonly onSaved: () => void;
+  readonly onSaved: (record: RecordItem) => void;
 }
 
 export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordDialogProps) {
@@ -49,6 +49,7 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
       return;
     }
     const players: { playerId: string; name: string; score: number }[] = [];
+    const seenNames = new Set<string>();
     for (const draft of drafts) {
       const name = draft.name.trim();
       const score = Number.parseFloat(draft.score);
@@ -60,13 +61,18 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
         setError('分數必須是數字。');
         return;
       }
+      if (seenNames.has(name)) {
+        setError('同一筆記錄不可有重複玩家。');
+        return;
+      }
+      seenNames.add(name);
       players.push({ playerId: draft.playerId, name, score });
     }
     setLoading(true);
     setError(null);
     try {
-      await updateRecord(record.id, players);
-      onSaved();
+      const updated = await updateRecord(record.id, players);
+      onSaved(updated);
     } catch (caught: unknown) {
       setError(isApiError(caught) ? caught.message : '更新失敗，請再試一次。');
     } finally {
@@ -103,7 +109,7 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
       }
     >
       <p className="dialog-warning">
-        改名會套用到該玩家的所有歷史記錄；若新名稱已被使用，會合併兩個玩家（同場分數相加）。
+        改名會套用到該玩家的所有歷史記錄；若新名稱已被使用，會合併兩個玩家。同一筆記錄不可有重複玩家。
       </p>
       <div className="form-stack">
         {drafts.map((draft, index) => (

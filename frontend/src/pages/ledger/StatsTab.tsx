@@ -83,13 +83,13 @@ function StatsContent({ stats, year }: { readonly stats: PlayerStats; readonly y
   );
 }
 
-export function StatsTab() {
+export function StatsTab({ refreshKey }: { readonly refreshKey: number }) {
   const [name, setName] = useState('');
   const debounced = useDebouncedValue(name.trim(), 300);
   const year = hkYear();
-  const players = useAsync('players', fetchPlayers);
+  const players = useAsync(`players|${refreshKey}`, fetchPlayers);
   const stats = useAsync<PlayerStats | null>(
-    debounced === '' ? 'stats-empty' : `stats|${debounced}|${year}`,
+    debounced === '' ? `stats-empty|${refreshKey}` : `stats|${debounced}|${year}|${refreshKey}`,
     () => (debounced === '' ? Promise.resolve(null) : fetchStats(debounced, year)),
   );
 

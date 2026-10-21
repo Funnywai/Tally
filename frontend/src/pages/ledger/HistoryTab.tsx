@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DeleteRecordDialog } from '../../components/DeleteRecordDialog';
 import { EditRecordDialog } from '../../components/EditRecordDialog';
 import { EmptyState } from '../../components/EmptyState';
-import { LoaderIcon, RefreshIcon } from '../../components/Icons';
+import { LoaderIcon } from '../../components/Icons';
 import { RecordRow } from '../../components/RecordRow';
 import { Skeleton } from '../../components/Skeleton';
 import { useToast } from '../../components/ToastProvider';
@@ -10,7 +10,7 @@ import { messageOf } from '../../hooks/useAsync';
 import { fetchRecords, type RecordItem } from '../../lib/api';
 import { formatDateLong, formatTimeHK, groupByDate } from '../../lib/date';
 
-export function HistoryTab() {
+export function HistoryTab({ onRecordsChanged }: { readonly onRecordsChanged: () => void }) {
   const { showToast } = useToast();
   const [items, setItems] = useState<RecordItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -20,19 +20,31 @@ export function HistoryTab() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [editing, setEditing] = useState<RecordItem | null>(null);
   const [deleting, setDeleting] = useState<RecordItem | null>(null);
+  const loadSeq = useRef(0);
 
-  const loadFirst = useCallback(async () => {
-    setLoading(true);
+  const loadFirst = useCallback(async (showLoading = true) => {
+    const seq = ++loadSeq.current;
+    if (showLoading) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await fetchRecords();
+      if (seq !== loadSeq.current) {
+        return;
+      }
       setItems(response.items);
       setNextCursor(response.nextCursor);
       setLastUpdated(new Date());
     } catch (caught: unknown) {
+      if (seq !== loadSeq.current) {
+        return;
+      }
       setError(messageOf(caught));
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -69,15 +81,6 @@ export function HistoryTab() {
             {lastUpdated === null ? '尚未更新' : `最後更新 ${formatTimeHK(lastUpdated)}`}
           </p>
         </div>
-        <button
-          type="button"
-          className="button button--small button--outline"
-          onClick={() => void loadFirst()}
-          disabled={loading}
-        >
-          <RefreshIcon size={16} />
-          重新整理
-        </button>
       </div>
 
       {loading && items.length === 0 ? <Skeleton lines={3} /> : null}
@@ -141,10 +144,12 @@ export function HistoryTab() {
         open={editing !== null}
         record={editing}
         onClose={() => setEditing(null)}
-        onSaved={() => {
+        onSaved={(updated) => {
           setEditing(null);
+          setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
           showToast('已更新記錄', 'success');
-          void loadFirst();
+          onRecordsChanged();
+          void loadFirst(false);
         }}
       />
 
@@ -153,9 +158,14 @@ export function HistoryTab() {
         record={deleting}
         onClose={() => setDeleting(null)}
         onDeleted={() => {
+          const deletedId = deleting?.id;
+          if (deletedId !== undefined) {
+            setItems((current) => current.filter((item) => item.id !== deletedId));
+          }
           setDeleting(null);
           showToast('已刪除記錄', 'success');
-          void loadFirst();
+          onRecordsChanged();
+          void loadFirst(false);
         }}
       />
     </div>

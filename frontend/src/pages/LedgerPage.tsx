@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useState } from 'react';
+import { type KeyboardEvent, useCallback, useState } from 'react';
 import { HistoryTab } from './ledger/HistoryTab';
 import { RankingTab } from './ledger/RankingTab';
 import { StatsTab } from './ledger/StatsTab';
@@ -13,6 +13,11 @@ type LedgerTab = (typeof TABS)[number]['id'];
 
 export function LedgerPage() {
   const [tab, setTab] = useState<LedgerTab>('history');
+  const [dataVersion, setDataVersion] = useState(0);
+
+  const handleRecordsChanged = useCallback(() => {
+    setDataVersion((version) => version + 1);
+  }, []);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
@@ -66,7 +71,7 @@ export function LedgerPage() {
         aria-labelledby="ledger-tab-history"
         hidden={tab !== 'history'}
       >
-        <HistoryTab />
+        <HistoryTab onRecordsChanged={handleRecordsChanged} />
       </div>
       <div
         id="ledger-panel-stats"
@@ -74,7 +79,7 @@ export function LedgerPage() {
         aria-labelledby="ledger-tab-stats"
         hidden={tab !== 'stats'}
       >
-        <StatsTab />
+        <StatsTab refreshKey={dataVersion} />
       </div>
       <div
         id="ledger-panel-ranking"
@@ -82,7 +87,7 @@ export function LedgerPage() {
         aria-labelledby="ledger-tab-ranking"
         hidden={tab !== 'ranking'}
       >
-        <RankingTab />
+        <RankingTab refreshKey={dataVersion} />
       </div>
     </section>
   );

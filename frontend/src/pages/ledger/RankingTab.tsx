@@ -5,8 +5,8 @@ import { useAsync } from '../../hooks/useAsync';
 import { fetchRanking } from '../../lib/api';
 import { formatStatMoney } from '../../lib/money';
 
-export function RankingTab() {
-  const ranking = useAsync('ranking', fetchRanking);
+export function RankingTab({ refreshKey }: { readonly refreshKey: number }) {
+  const ranking = useAsync(`ranking|${refreshKey}`, fetchRanking);
 
   return (
     <div className="ledger-panel">
