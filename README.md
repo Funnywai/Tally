@@ -1,12 +1,13 @@
 # Tally — Mahjong & Football
 
-Self-hosted ledger backend for the Mahjong scoring app. This repository contains **Phase A
-(infrastructure + backend)** only. The frontend/PWA is Phase B and will replace the placeholder in
-`public/`.
+Self-hosted Mahjong scoring app. This repository contains **Phase A (infrastructure + backend)** and
+**Phase B (React PWA frontend)**. The frontend lives in `frontend/`; the Docker image builds it into
+the runtime `public/` directory.
 
-- Runtime: Node.js 22 + Express 5 + raw PostgreSQL (`pg`) + Zod 4 + TypeScript 5.9
-- Package manager: pnpm
-- Tests: Vitest (unit + integration against a real PostgreSQL 16 database)
+- Backend: Node.js 22 + Express 5 + raw PostgreSQL (`pg`) + Zod 4 + TypeScript 5.9
+- Frontend: Vite 8 + React 19 + TypeScript 5.9 + `vite-plugin-pwa`; system CJK fonts only
+- Package manager: pnpm (root backend and standalone `frontend/` package)
+- Tests: Vitest (backend unit + integration against PostgreSQL 16; frontend pure-logic unit tests)
 - Deployment: Docker Compose (`web` + `db` + `cloudflared`), exposed only through a Cloudflare
   Named Tunnel at `tally.funnywai.tech`
 - No Firebase, no Vercel, no ORM, no CORS, no inbound published ports in production
@@ -22,7 +23,7 @@ Cloudflare Named Tunnel  ──►  cloudflared container
                                    ▼
                             web container (Node 22 / Express 5)
                               ├── /api/*  (JSON API, shared-passcode cookie auth)
-                              └── public/ (static placeholder; Phase B replaces it)
+                              └── public/ (built frontend from frontend/dist)
                                    │ postgres://db:5432 (compose network)
                                    ▼
                             db container (postgres:16-alpine, named volume)
@@ -44,6 +45,12 @@ src/
   app.ts                    createApp(deps) for tests
   server.ts                 config → pool → migrations → listen → graceful shutdown
   migrate.ts                migration runner + CLI
+frontend/
+  src/                      React app (pages, components, state, lib, styles)
+  public/                   PWA icons, maskable icons, apple-touch-icon, startup images
+  tests/                    Vitest unit tests for scoring, money, dates, reducer, storage
+  DESIGN.md                 Phase B design-system contract (tokens, components, motion, a11y)
+  vite.config.ts            Vite + PWA config; dev proxy to 127.0.0.1:3100
 scripts/
   import-firebase-json.mjs  idempotent Firebase RTDB import + --verify
   backup.sh                 pg_dump + gzip + keep newest 14
@@ -51,7 +58,8 @@ scripts/
   smoke-test.sh             end-to-end curl proof
 tests/                      Vitest unit + integration tests and fixtures
 docs/api.http               REST Client examples for every endpoint
-public/index.html           Phase A placeholder
+docs/evidence/phase-b/      Local Phase B screenshots and E2E result JSON (gitignored)
+public/                     Phase A placeholder (the Docker image replaces it with frontend/dist)
 ```
 
 ## Local development
@@ -112,12 +120,31 @@ Prerequisites: Node 22, pnpm, Docker.
    # {"ok":true,"db":true}
    ```
 
+### Frontend development
+
+The Vite dev server proxies `/api` to the local Docker backend at `http://127.0.0.1:3100`, so start
+the backend first (`docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d db web`).
+
+```bash
+pnpm --dir frontend install
+pnpm dev:web          # Vite at http://127.0.0.1:5173
+pnpm build:web        # production build into frontend/dist
+pnpm typecheck:web
+pnpm test:web
+```
+
+The frontend is a standalone pnpm package with its own `frontend/pnpm-lock.yaml`. It uses hash routes
+(`#fan`, `#mai`, `#ledger`), same-origin `fetch` with `credentials: "same-origin"`, and never stores
+the passcode or session token in `localStorage`.
+
 ### Tests
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm typecheck:web
+pnpm test:web
 ```
 
 Integration tests use `TEST_DATABASE_URL`, defaulting to
@@ -125,6 +152,19 @@ Integration tests use `TEST_DATABASE_URL`, defaulting to
 helper refuses to run otherwise, so a shell that loaded a production `DATABASE_URL` cannot make
 `pnpm test` truncate production tables. Tests truncate `settlements`, `games`, and `players` before
 each test. `LOG_LEVEL=silent` is set by the Vitest config.
+
+When the Docker debug stack already owns `127.0.0.1:5433`, create a separate `tally_test` database in
+that PostgreSQL instance and point `TEST_DATABASE_URL` at it with the same credentials as `.env`:
+
+```bash
+set -a; . ./.env; set +a
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" tally-db-1 \
+  psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE tally_test"
+TEST_DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5433/tally_test" pnpm test
+```
+
+The frontend tests are pure-logic Vitest tests (no browser): scoring formula, 踢半, 找數 zero-sum,
+特別賞罰, 飯錢, money formatting, Hong Kong date grouping, reducer/undo, and localStorage validation.
 
 ### Docker locally
 
@@ -141,6 +181,10 @@ with the placeholder. The debug override publishes only `127.0.0.1:3100` (web) a
 `127.0.0.1:5433` (db). The base compose file publishes nothing. Because production rejects
 `COOKIE_SECURE=false`, local Docker must also set `NODE_ENV=development` in `.env`.
 
+The `web` image is a multi-stage build: a `web-build` stage installs `frontend/`, runs
+`pnpm build`, and the runtime stage copies `frontend/dist` to `/app/public`. The runtime image no
+longer contains the Phase A placeholder.
+
 ## Environment variables and secrets
 
 | Variable | Required | Notes |
@@ -154,6 +198,7 @@ with the placeholder. The debug override publishes only `127.0.0.1:3100` (web) a
 | `APP_PASSCODE` | yes | Shared passcode; **≥32 characters in production** |
 | `SESSION_SECRET` | yes | HMAC key; **≥32 characters**; rotating it invalidates all sessions |
 | `COOKIE_SECURE` | no | Default `true`; set `false` only for plain-HTTP local development |
+| `PUBLIC_DIR` | no | Static directory; default `public`. Set `PUBLIC_DIR=frontend/dist` for local production-like serving without Docker |
 | `TUNNEL_TOKEN` | yes (deploy) | Cloudflare Named Tunnel token |
 
 `POSTGRES_PASSWORD` and the password inside `DATABASE_URL` must be identical. If you choose a
@@ -316,10 +361,82 @@ included. Totals are rounded to 1 decimal place.
 
 ### Static serving
 
-`public/` is served at `/`; `/` maps to `index.html`. Non-API GET paths without a dot fall back to
+`public/` is served at `/`; `/` maps to `index.html`. `PUBLIC_DIR` overrides the directory (for
+example `PUBLIC_DIR=frontend/dist pnpm start:local`). Non-API GET paths without a dot fall back to
 `index.html` for SPA routing. `manifest.webmanifest` is served as `application/manifest+json`;
 `sw.js`, `index.html`, and `manifest.webmanifest` use `Cache-Control: no-cache`; `/assets/*` uses a
 long immutable cache; `/api/*` uses `no-store`. Unknown `/api/*` returns a JSON `404`.
+
+## Phase B frontend
+
+The frontend is a mobile-first React PWA for four friends scoring at a table. It has three workflows:
+
+- **番數記錄** (`#fan`) — 3 columns × 7 rows, row-major; the formula is
+  `ceil(Σ r_i · 1.5^(n-1-i))` over non-null cells, top to bottom; 踢半 and 找數 per column.
+- **埋數** (`#mai`) — four player cards, decimal adjust keypad, ÷4/÷3/÷2, 特別賞罰, 飯錢, and
+  「寫入小氣簿」.
+- **小氣簿** (`#ledger`) — paginated history with per-record edit/delete, full-dataset personal
+  stats, and full-dataset ranking.
+
+The design contract is [`frontend/DESIGN.md`](frontend/DESIGN.md). The direction is **“Mahjong table
+at night”**: deep ink-green felt, warm ivory type, cinnabar seal accent, jade/coral money semantics,
+and a tally-mark identity. Layer A is `taste-skill` (density, anti-slop discipline); Layer B is
+`supabase` (border-defined dark surfaces, translucent layering, pill primary CTA). No external fonts,
+CDNs, logos, or brand copy are used.
+
+### Auth and state
+
+- Shared passcode → `POST /api/auth` → server sets an `HttpOnly` cookie. The frontend never stores
+  the passcode or token, never adds an `Authorization` header, and always uses
+  `credentials: "same-origin"`.
+- Boot probe is `GET /api/players`: `200` = authenticated, `401` = login, network/5xx = offline mode
+  with retry. Any API `401` returns to the login screen.
+- Today's draft lives in `localStorage` under exactly `mj_names`, `mj_inputs`, `mj_outputs`,
+  `mj_tikai`, `mj_accumulated`, `mj_undo_stack`. The server is the ledger truth; localStorage is only
+  the current day's draft. The install banner's dismissal uses `tally_install_dismissed_v1`; it is a
+  UI preference only, never a session or token.
+
+### PWA
+
+- `manifest.webmanifest`: `name: "Tally — Mahjong & Football"`, `short_name: "Tally"`,
+  `start_url: "/"`, `scope: "/"`, `display: "standalone"`, `lang: "zh-Hant"`, 192/512 + maskable
+  icons.
+- Opaque 180×180 `apple-touch-icon`, 10 `apple-touch-startup-image` sizes, `black-translucent`
+  status bar, `viewport-fit=cover`, `100dvh`, top and bottom safe areas, 16px inputs, no
+  `maximum-scale`.
+- Service worker precaches the app shell; HTML/SW are network-first; `/api/*` is `NetworkOnly` and
+  never cached. Offline reload still opens the fan/mai pages; the ledger shows an offline/error state
+  with retry.
+- iOS Safari (not standalone) shows a dismissible “Safari 分享 → 加入主畫面” banner. The update
+  banner uses `virtual:pwa-register/react` `needRefresh` with 「更新」/「稍後」.
+
+### Evidence
+
+Local QA screenshots and E2E result JSON are in
+[`docs/evidence/phase-b/`](docs/evidence/phase-b/) (gitignored; generated on the build machine). Key
+files:
+
+- `375-login.png`, `375-fan-empty.png`, `375-fan-filled.png`, `375-keypad.png`,
+  `375-fan-tikai.png`, `375-fan-zhao.png`
+- `375-mai.png`, `375-mai-adjusted.png`, `375-special.png`, `375-food.png`,
+  `375-mai-written.png`
+- `375-ledger-history.png`, `375-edit-record.png`, `375-delete-record.png`,
+  `375-ledger-stats.png`, `375-ledger-ranking.png`
+- `375-offline.png`, `375-reduced-motion.png`, `430-login.png`, `430-fan.png`, `430-mai.png`,
+  `430-ledger.png`
+- `prod-login.png`, `prod-fan.png`, `prod-mai.png`, `prod-ledger.png`,
+  `prod-offline-reload.png`, `prod-401-login.png`
+- `ios-install-banner.png`, `ios-standalone.png`
+- `e2e-results.json`, `prod-results.json`, `prod-flow-results.json`
+
+### Known limitations
+
+- Real iPhone standalone/safe-area evidence is still pending; the captured iOS evidence uses
+  Playwright WebKit with an iPhone user agent, not a physical device.
+- No Web Push, background sync, or offline write queue (out of scope per the spec).
+- Dark-only theme by design; no desktop layout beyond the centred 480px shell.
+- The service worker update prompt is implemented but a real redeploy/update cycle still needs
+  device verification.
 
 ## Firebase import
 
@@ -451,8 +568,8 @@ session cookie.
 - Security headers: `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`,
   `X-Frame-Options: DENY`; `X-Powered-By` is disabled.
 - JSON body limit is 32 KB; non-JSON bodies on state-changing requests return `415`.
-- All SQL is parameterized. Player names are data, not HTML; the Phase B frontend must escape them
-  when rendering.
+- All SQL is parameterized. Player names are data, not HTML; the React frontend renders them as text
+  (no `dangerouslySetInnerHTML`).
 - `db` is never published. Only `cloudflared` exposes `web`.
 - Backups contain personal data. Keep `backups/` private and out of git.
 
@@ -478,10 +595,10 @@ session cookie.
 - **Startup resilience.** The server retries the database connection 10 times at 2-second intervals
   before failing, then applies migrations under an advisory lock.
 
-## Out of scope (Phase B)
+## Out of scope
 
-- Frontend UI, three workflows, localStorage draft state, PWA manifest/icons/service worker,
-  install guidance, safe-area handling, and visual design.
 - Multi-ledger, groups, user accounts, roles, or per-user permissions.
 - Server-side session revocation/denylist and distributed rate limiting.
 - A backup sidecar container; the host cron line above is the documented mechanism.
+- Web Push, background sync, and an offline write queue.
+- Real-device iPhone evidence (pending; see the Phase B known limitations).

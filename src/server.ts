@@ -40,7 +40,8 @@ async function main(): Promise<void> {
     const migrationsDir = process.env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), 'migrations');
     await runMigrations(db.pool, migrationsDir, logger);
 
-    const app = createApp({ config, db, logger });
+    const publicDir = process.env.PUBLIC_DIR ?? path.resolve(process.cwd(), 'public');
+    const app = createApp({ config, db, logger, publicDir });
     const server = createServer(app);
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);

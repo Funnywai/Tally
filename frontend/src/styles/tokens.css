@@ -1,0 +1,100 @@
+:root {
+  color-scheme: dark;
+
+  --ink-950: #070d0b;
+  --ink-900: #0b1411;
+  --ink-850: #0f1b16;
+  --ink-800: #13231c;
+  --ink-750: #182c23;
+  --line: #263a30;
+  --line-strong: #355044;
+
+  --ivory: #f4eddd;
+  --ivory-dim: #cfc6b2;
+  --muted: #93a096;
+  --muted-2: #6f7d73;
+
+  --cinnabar: #e4573f;
+  --cinnabar-text: #f06a50;
+  --cinnabar-deep: #a83224;
+  --cinnabar-faint: rgba(228, 87, 63, 0.1);
+  --cinnabar-wash: rgba(228, 87, 63, 0.12);
+  --cinnabar-soft: rgba(228, 87, 63, 0.14);
+  --cinnabar-edge: rgba(228, 87, 63, 0.4);
+  --cinnabar-border: rgba(228, 87, 63, 0.55);
+  --cinnabar-glow: rgba(228, 87, 63, 0.55);
+
+  --jade: #5bd6a6;
+  --jade-deep: #1c6b52;
+  --coral: #ff8a78;
+  --coral-deep: #8f2f24;
+
+  --focus: #ffd2a8;
+  --scrim: rgba(3, 7, 5, 0.72);
+  --felt-glow: rgba(28, 58, 44, 0.55);
+  --felt-glow-strong: rgba(28, 58, 44, 0.7);
+  --coral-wash: rgba(143, 47, 36, 0.15);
+  --coral-wash-soft: rgba(143, 47, 36, 0.12);
+  --header-bg: rgba(11, 20, 17, 0.88);
+  --nav-bg: rgba(11, 20, 17, 0.92);
+  --shadow-sheet: 0 -24px 64px rgba(0, 0, 0, 0.45);
+  --shadow-toast: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-login: 0 24px 64px rgba(0, 0, 0, 0.4);
+  --sheen: rgba(244, 237, 221, 0.06);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang HK', 'PingFang TC',
+    'Noto Sans CJK TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, 'Roboto Mono', monospace;
+
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-3-5: 14px;
+  --space-4: 16px;
+  --space-4-5: 18px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-hairline: 2px;
+  --radius-2xs: 4px;
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --radius-3xl: 18px;
+  --radius-sheet: 20px;
+  --radius-pill: 999px;
+
+  --border-hairline: 1px;
+  --border-accent: 2px;
+  --border-toast: 3px;
+
+  --target-min: 44px;
+  --target-comfortable: 48px;
+  --target-primary: 52px;
+  --target-card: 112px;
+  --target-numpad: 56px;
+
+  --dur-press: 120ms;
+  --dur-fast: 160ms;
+  --dur-base: 200ms;
+  --dur-sheet: 240ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --header-h: 56px;
+  --nav-h: 64px;
+  --shell-max: 480px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
