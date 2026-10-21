@@ -67,7 +67,7 @@ describe('record patching semantics', () => {
     expect(oldStats.body.allTimeGames).toBe(0);
   });
 
-  it('merges into an existing player in the same record', async () => {
+  it('rejects renaming to a player in the same record', async () => {
     const { app } = await createTestApp();
     const cookie = await login(app);
     const created = await request(app)
@@ -75,7 +75,7 @@ describe('record patching semantics', () => {
       .set('Cookie', cookie)
       .send({ date: '2026-10-21', players: fourPlayers() });
 
-    const bob = created.body.players.find((player: { name: string }) => player.name === 'B');
+    const before = created.body;
     const response = await request(app)
       .patch(`/api/records/${created.body.id}`)
       .set('Cookie', cookie)
@@ -89,22 +89,30 @@ describe('record patching semantics', () => {
         ),
       });
 
-    expect(response.status).toBe(200);
-    expect(response.body.players).toHaveLength(3);
-    const merged = response.body.players.find((player: { name: string }) => player.name === 'B');
-    expect(merged.playerId).toBe(bob.playerId);
-    expect(merged.score).toBe(0);
-    expect(response.body.players.some((player: { name: string }) => player.name === 'A')).toBe(
-      false,
-    );
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe('CONFLICT');
+
+    const after = await request(app).get('/api/records').set('Cookie', cookie);
+    const item = after.body.items.find((entry: { id: string }) => entry.id === created.body.id);
+    expect(item.players).toHaveLength(4);
+    expect(item.players.map((player: { name: string }) => player.name).sort()).toEqual([
+      'A',
+      'B',
+      'C',
+      'D',
+    ]);
+    for (const player of before.players) {
+      const current = item.players.find(
+        (entry: { name: string; playerId: string; score: number }) => entry.name === player.name,
+      );
+      expect(current?.playerId).toBe(player.playerId);
+      expect(current?.score).toBe(player.score);
+    }
 
     const playersResponse = await request(app).get('/api/players').set('Cookie', cookie);
-    expect(
-      playersResponse.body.players.map((player: { name: string }) => player.name),
-    ).not.toContain('A');
-
-    const stats = await request(app).get('/api/stats?player=B&year=2026').set('Cookie', cookie);
-    expect(stats.body.allTimeGames).toBe(1);
+    const names = playersResponse.body.players.map((player: { name: string }) => player.name);
+    expect(names).toContain('A');
+    expect(names).toContain('B');
   });
 
   it('merges a player into a name that exists in another record', async () => {
@@ -143,6 +151,83 @@ describe('record patching semantics', () => {
     expect(stats.body.allTimeGames).toBe(2);
     const old = await request(app).get('/api/stats?player=A&year=2026').set('Cookie', cookie);
     expect(old.body.allTimeGames).toBe(0);
+  });
+
+  it('rejects two rows that resolve to the same player in another record', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const first = await request(app)
+      .post('/api/records')
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-20', players: fourPlayers() });
+    await request(app)
+      .post('/api/records')
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-21', players: fourPlayers('2') });
+
+    const response = await request(app)
+      .patch(`/api/records/${first.body.id}`)
+      .set('Cookie', cookie)
+      .send({
+        players: first.body.players.map(
+          (player: { playerId: string; name: string; score: number }) => ({
+            playerId: player.playerId,
+            name: player.name === 'A' || player.name === 'B' ? 'A2' : player.name,
+            score: player.score,
+          }),
+        ),
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe('CONFLICT');
+
+    const after = await request(app).get('/api/records').set('Cookie', cookie);
+    const item = after.body.items.find((entry: { id: string }) => entry.id === first.body.id);
+    expect(item.players).toHaveLength(4);
+    expect(item.players.map((player: { name: string }) => player.name).sort()).toEqual([
+      'A',
+      'B',
+      'C',
+      'D',
+    ]);
+    for (const player of first.body.players) {
+      const current = item.players.find(
+        (entry: { name: string; playerId: string; score: number }) => entry.name === player.name,
+      );
+      expect(current?.playerId).toBe(player.playerId);
+      expect(current?.score).toBe(player.score);
+    }
+  });
+
+  it('rejects a no-playerId row that resolves to a player already in the record', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const created = await request(app)
+      .post('/api/records')
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-21', players: fourPlayers() });
+
+    const alice = created.body.players.find((player: { name: string }) => player.name === 'A');
+    const response = await request(app)
+      .patch(`/api/records/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({
+        players: [
+          { playerId: alice.playerId, name: 'A', score: alice.score },
+          { name: 'A', score: 5 },
+        ],
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe('CONFLICT');
+
+    const after = await request(app).get('/api/records').set('Cookie', cookie);
+    const item = after.body.items.find((entry: { id: string }) => entry.id === created.body.id);
+    expect(item.players).toHaveLength(4);
+
+    const db = await getTestDb();
+    const settlements = await db.pool.query('select count(*)::int as count from settlements');
+    expect(settlements.rows[0]?.count).toBe(4);
   });
 
   it('rejects a playerId that does not belong to the record', async () => {

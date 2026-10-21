@@ -37,20 +37,26 @@ async function resolvePlayerId(client: PoolClient, name: string): Promise<string
   return row.id;
 }
 
-async function mergePlayers(client: PoolClient, sourceId: string, targetId: string): Promise<void> {
-  await client.query(
-    `update settlements t
-        set score = t.score + s.score
+async function assertNoSharedGame(
+  client: PoolClient,
+  sourceId: string,
+  targetId: string,
+): Promise<void> {
+  const shared = await client.query(
+    `select 1
        from settlements s
-      where t.player_id = $2 and s.player_id = $1 and t.game_id = s.game_id`,
+       join settlements t on s.game_id = t.game_id
+      where s.player_id = $1 and t.player_id = $2
+      limit 1`,
     [sourceId, targetId],
   );
-  await client.query(
-    `delete from settlements s
-      using settlements t
-      where s.player_id = $1 and t.player_id = $2 and s.game_id = t.game_id`,
-    [sourceId, targetId],
-  );
+  if (shared.rows.length > 0) {
+    throw new AppError('CONFLICT', '同一筆記錄已有此玩家，無法合併');
+  }
+}
+
+async function mergePlayers(client: PoolClient, sourceId: string, targetId: string): Promise<void> {
+  await assertNoSharedGame(client, sourceId, targetId);
   await client.query('update settlements set player_id = $2 where player_id = $1', [
     sourceId,
     targetId,
@@ -188,8 +194,10 @@ export async function updateRecord(
           playerId = await resolvePlayerId(client, player.name);
         }
 
-        const next = round1((resolvedById.get(playerId) ?? 0) + player.score);
-        resolvedById.set(playerId, next);
+        if (resolvedById.has(playerId)) {
+          throw new AppError('CONFLICT', '同一記錄不可有重複玩家');
+        }
+        resolvedById.set(playerId, round1(player.score));
       }
       const resolved = [...resolvedById].map(([playerId, score]) => ({ playerId, score }));
 
