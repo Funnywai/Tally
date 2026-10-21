@@ -22,18 +22,20 @@ interface BottomNavProps {
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <nav className="bottom-nav" aria-label="主要導航">
-      {TABS.map(({ route, label, Icon }) => (
-        <button
-          key={route}
-          type="button"
-          className={`bottom-nav__tab ${active === route ? 'is-active' : ''}`}
-          aria-current={active === route ? 'page' : undefined}
-          onClick={() => onNavigate(route)}
-        >
-          <Icon size={22} />
-          <span>{label}</span>
-        </button>
-      ))}
+      <div className="bottom-nav__inner">
+        {TABS.map(({ route, label, Icon }) => (
+          <button
+            key={route}
+            type="button"
+            className={`bottom-nav__tab ${active === route ? 'is-active' : ''}`}
+            aria-current={active === route ? 'page' : undefined}
+            onClick={() => onNavigate(route)}
+          >
+            <Icon size={22} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
     </nav>
   );
 }
