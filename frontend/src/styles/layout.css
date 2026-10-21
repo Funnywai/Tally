@@ -286,6 +286,32 @@
   color: var(--ivory-dim);
 }
 
+/* iOS 26 standalone reports a short 100dvh, leaving a one-status-bar strip
+   below the web viewport. A 100vh shell with an in-flow nav fills that strip. */
+html.is-standalone,
+html.is-standalone body,
+html.is-standalone #root {
+  height: 100vh;
+  height: 100lvh;
+  min-height: 100vh;
+  min-height: 100lvh;
+  overflow: hidden;
+}
+
+html.is-standalone .app-shell {
+  height: 100vh;
+  height: 100lvh;
+}
+
+html.is-standalone .bottom-nav {
+  position: static;
+  flex: none;
+}
+
+html.is-standalone .app-main {
+  padding-bottom: var(--space-6);
+}
+
 .loading-screen {
   display: flex;
   flex-direction: column;
