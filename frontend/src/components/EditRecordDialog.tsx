@@ -102,7 +102,9 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
         </>
       }
     >
-      <p className="dialog-warning">改名會套用到該玩家的所有歷史記錄。</p>
+      <p className="dialog-warning">
+        改名會套用到該玩家的所有歷史記錄；若新名稱已被使用，會合併兩個玩家（同場分數相加）。
+      </p>
       <div className="form-stack">
         {drafts.map((draft, index) => (
           <div key={draft.playerId} className="edit-row">

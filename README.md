@@ -312,10 +312,12 @@ name. Returns `201` with the created item.
 
 `PATCH /api/records/:id` accepts `date` and/or `players` (at least one). `players` must contain 2–8
 entries and replaces the settlement set. An entry with `playerId` must currently belong to the game
-(otherwise `400`). If its `name` differs, the player is **renamed globally** (`players.name`), so
-history follows automatically; renaming to another player's name returns `409 CONFLICT`. An entry
-without `playerId` reuses a player by name or creates one. Duplicate players in the same record
-return `409`. Returns `200` with the updated item.
+(otherwise `400`). If its `name` differs, the player is **renamed globally** (`players.name`). If the
+new name already exists, the source player is **merged into the target**: settlements are reassigned,
+scores are summed when both players already have a settlement in the same game, and the source player
+row is removed. The record may end up with fewer players. An entry without `playerId` reuses a player
+by name or creates one; two entries without `playerId` and the same name return `409 CONFLICT`.
+Returns `200` with the updated item.
 
 `DELETE /api/records/:id` returns `204`; settlements cascade. Missing records return `404`.
 

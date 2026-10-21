@@ -67,7 +67,7 @@ describe('record patching semantics', () => {
     expect(oldStats.body.allTimeGames).toBe(0);
   });
 
-  it('returns 409 when renaming to an existing player name', async () => {
+  it('merges into an existing player in the same record', async () => {
     const { app } = await createTestApp();
     const cookie = await login(app);
     const created = await request(app)
@@ -75,6 +75,7 @@ describe('record patching semantics', () => {
       .set('Cookie', cookie)
       .send({ date: '2026-10-21', players: fourPlayers() });
 
+    const bob = created.body.players.find((player: { name: string }) => player.name === 'B');
     const response = await request(app)
       .patch(`/api/records/${created.body.id}`)
       .set('Cookie', cookie)
@@ -88,8 +89,60 @@ describe('record patching semantics', () => {
         ),
       });
 
-    expect(response.status).toBe(409);
-    expect(response.body.error.code).toBe('CONFLICT');
+    expect(response.status).toBe(200);
+    expect(response.body.players).toHaveLength(3);
+    const merged = response.body.players.find((player: { name: string }) => player.name === 'B');
+    expect(merged.playerId).toBe(bob.playerId);
+    expect(merged.score).toBe(0);
+    expect(response.body.players.some((player: { name: string }) => player.name === 'A')).toBe(
+      false,
+    );
+
+    const playersResponse = await request(app).get('/api/players').set('Cookie', cookie);
+    expect(
+      playersResponse.body.players.map((player: { name: string }) => player.name),
+    ).not.toContain('A');
+
+    const stats = await request(app).get('/api/stats?player=B&year=2026').set('Cookie', cookie);
+    expect(stats.body.allTimeGames).toBe(1);
+  });
+
+  it('merges a player into a name that exists in another record', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const first = await request(app)
+      .post('/api/records')
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-20', players: fourPlayers() });
+    const second = await request(app)
+      .post('/api/records')
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-21', players: fourPlayers('2') });
+
+    const target = second.body.players.find((player: { name: string }) => player.name === 'A2');
+    const response = await request(app)
+      .patch(`/api/records/${first.body.id}`)
+      .set('Cookie', cookie)
+      .send({
+        players: first.body.players.map(
+          (player: { playerId: string; name: string; score: number }) => ({
+            playerId: player.playerId,
+            name: player.name === 'A' ? 'A2' : player.name,
+            score: player.score,
+          }),
+        ),
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.players).toHaveLength(4);
+    const merged = response.body.players.find((player: { name: string }) => player.name === 'A2');
+    expect(merged.playerId).toBe(target.playerId);
+    expect(merged.score).toBe(12.5);
+
+    const stats = await request(app).get('/api/stats?player=A2&year=2026').set('Cookie', cookie);
+    expect(stats.body.allTimeGames).toBe(2);
+    const old = await request(app).get('/api/stats?player=A&year=2026').set('Cookie', cookie);
+    expect(old.body.allTimeGames).toBe(0);
   });
 
   it('rejects a playerId that does not belong to the record', async () => {

@@ -37,19 +37,59 @@ async function resolvePlayerId(client: PoolClient, name: string): Promise<string
   return row.id;
 }
 
-async function renamePlayer(client: PoolClient, playerId: string, name: string): Promise<void> {
-  const conflict = await client.query<{ id: string }>(
-    'select id from players where name = $1 and id <> $2',
-    [name, playerId],
+async function mergePlayers(client: PoolClient, sourceId: string, targetId: string): Promise<void> {
+  await client.query(
+    `update settlements t
+        set score = t.score + s.score
+       from settlements s
+      where t.player_id = $2 and s.player_id = $1 and t.game_id = s.game_id`,
+    [sourceId, targetId],
   );
-  if (conflict.rows.length > 0) {
-    throw new AppError('CONFLICT', '名稱已被其他玩家使用');
+  await client.query(
+    `delete from settlements s
+      using settlements t
+      where s.player_id = $1 and t.player_id = $2 and s.game_id = t.game_id`,
+    [sourceId, targetId],
+  );
+  await client.query('update settlements set player_id = $2 where player_id = $1', [
+    sourceId,
+    targetId,
+  ]);
+  await client.query(
+    `delete from players p
+      where p.id = $1 and not exists (select 1 from settlements s where s.player_id = p.id)`,
+    [sourceId],
+  );
+}
+
+async function resolveRenamedPlayer(
+  client: PoolClient,
+  sourceId: string,
+  name: string,
+): Promise<string> {
+  const target = await client.query<{ id: string }>(
+    'select id from players where name = $1 and id <> $2',
+    [name, sourceId],
+  );
+  const targetId = target.rows[0]?.id;
+  if (targetId !== undefined) {
+    await mergePlayers(client, sourceId, targetId);
+    return targetId;
   }
   try {
-    await client.query('update players set name = $1 where id = $2', [name, playerId]);
+    await client.query('update players set name = $1 where id = $2', [name, sourceId]);
+    return sourceId;
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new AppError('CONFLICT', '名稱已被其他玩家使用');
+      const raced = await client.query<{ id: string }>(
+        'select id from players where name = $1 and id <> $2',
+        [name, sourceId],
+      );
+      const racedId = raced.rows[0]?.id;
+      if (racedId !== undefined) {
+        await mergePlayers(client, sourceId, racedId);
+        return racedId;
+      }
     }
     throw error;
   }
@@ -127,8 +167,8 @@ export async function updateRecord(
       );
       const currentNames = new Map(current.rows.map((row) => [row.player_id, row.name]));
 
-      const resolved: { playerId: string; score: number }[] = [];
-      const seen = new Set<string>();
+      const resolvedById = new Map<string, number>();
+      const newNames = new Set<string>();
       for (const player of data.players) {
         let playerId: string;
         if (player.playerId !== undefined && player.playerId !== null) {
@@ -136,20 +176,22 @@ export async function updateRecord(
           if (currentName === undefined) {
             throw new AppError('VALIDATION', '玩家不屬於此記錄');
           }
-          if (currentName !== player.name) {
-            await renamePlayer(client, player.playerId, player.name);
-          }
-          playerId = player.playerId;
+          playerId =
+            currentName !== player.name
+              ? await resolveRenamedPlayer(client, player.playerId, player.name)
+              : player.playerId;
         } else {
+          if (newNames.has(player.name)) {
+            throw new AppError('CONFLICT', '同一記錄不可有重複玩家');
+          }
+          newNames.add(player.name);
           playerId = await resolvePlayerId(client, player.name);
         }
 
-        if (seen.has(playerId)) {
-          throw new AppError('CONFLICT', '同一記錄不可有重複玩家');
-        }
-        seen.add(playerId);
-        resolved.push({ playerId, score: player.score });
+        const next = round1((resolvedById.get(playerId) ?? 0) + player.score);
+        resolvedById.set(playerId, next);
       }
+      const resolved = [...resolvedById].map(([playerId, score]) => ({ playerId, score }));
 
       await client.query('delete from settlements where game_id = $1', [id]);
       await insertSettlements(client, id, resolved);

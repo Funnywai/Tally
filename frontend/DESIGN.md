@@ -173,10 +173,13 @@ future desktop surface needs it. No all-caps for prose; micro labels may be uppe
 
 ### Shell
 
-- `max-width: 480px`, centred, `min-height: 100dvh`.
-- Header: 56px + `env(safe-area-inset-top)`, sticky, translucent ink with 1px bottom border.
-- Bottom nav: 64px + `env(safe-area-inset-bottom)`, fixed, 1px top border.
-- Content: `padding: var(--space-4)` with `padding-bottom: calc(64px + env(safe-area-inset-bottom) + var(--space-6))`.
+- `max-width: 480px`, centred, `height: 100dvh`, flex column with `overflow: hidden`.
+- Header: 56px + `env(safe-area-inset-top)` + 10px breathing room, flex item, translucent ink with
+  1px bottom border.
+- Bottom nav: 64px + `env(safe-area-inset-bottom)`, flex item below the scrollable main; not fixed to
+  the visual viewport (prevents the iOS initial-scroll lift).
+- Content: the main is the scroll container (`flex: 1; min-height: 0; overflow-y: auto`) with
+  `padding: var(--space-4)` and a 24px bottom gap. Banners are `flex: none` above it.
 - No horizontal scroll at 375–430px. Grids use `minmax(0, 1fr)` so long names truncate, never push.
 
 ### Grids
@@ -185,7 +188,8 @@ future desktop surface needs it. No all-caps for prose; micro labels may be uppe
   output tiles `min-height: 64px`. Names are the column headers.
 - **Mai:** 2 × 2 player cards, each `min-height: 112px`; the 我 card spans the visual hierarchy with a
   cinnabar border and tally watermark.
-- **Ledger:** single column; date groups are bordered blocks; record rows use a 4-column inner grid.
+- **Ledger:** single column; date groups are bordered blocks; record rows use an auto-fit inner grid
+  (4 columns typical; 2–8 after merges/imports).
 
 ### Breakpoints
 
@@ -259,7 +263,7 @@ only the tokens above.
 
 ### RecordRow
 - Date group header: `YYYY年MM月DD日`, count, refresh time.
-- Record row: 4 player columns (name + signed score), per-record edit/delete icon buttons.
+- Record row: auto-fit player columns (name + signed score), per-record edit/delete icon buttons.
 - States: default, hover, focus, deleting (disabled + spinner), error inline.
 
 ### StatTile
@@ -311,7 +315,7 @@ assets. The login screen uses a larger tally watermark at 6% opacity.
 ## 8. Responsive, Accessibility & Debt
 
 ### Responsive
-- 375px: 3-column fan grid, 2×2 mai cards, 4-column record rows; all targets ≥ 44px.
+- 375px: 3-column fan grid, 2×2 mai cards, auto-fit record rows; all targets ≥ 44px.
 - 430px: same layout, more breathing room; shell caps at 480px.
 - Safe areas: top and bottom `env(safe-area-inset-*)`; `100dvh` only; no `100vh`.
 - Inputs 16px; viewport has no `maximum-scale`.
