@@ -57,7 +57,6 @@ export function FoodDialog({ open, names, onClose, onConfirm }: FoodDialogProps)
     <Sheet
       open={open}
       title="計算飯錢"
-      description="差額 = 負責俾錢 − 費用平攤，計入埋數。"
       onClose={onClose}
       footer={
         <>

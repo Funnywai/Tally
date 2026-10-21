@@ -33,13 +33,12 @@ export function SpecialDialog({ open, names, onClose, onConfirm }: SpecialDialog
   const preview =
     ready && index !== null && kind !== null && score !== null
       ? `${names[index]} ${kind === 'win' ? '收' : '賠'} ${score} 分 · 其餘各 ${signed(kind === 'win' ? -score : score)}`
-      : '選擇玩家、收/賠、分數';
+      : null;
 
   return (
     <Sheet
       open={open}
       title="特別賞罰"
-      description="零和結算：選中者 3 倍，其餘各 1 倍。"
       onClose={onClose}
       footer={
         <>
@@ -117,7 +116,7 @@ export function SpecialDialog({ open, names, onClose, onConfirm }: SpecialDialog
         </div>
       </div>
 
-      <p className="dialog-preview">{preview}</p>
+      {preview === null ? null : <p className="dialog-preview">{preview}</p>}
     </Sheet>
   );
 }
