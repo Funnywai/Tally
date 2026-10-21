@@ -863,12 +863,6 @@
   font-weight: 600;
 }
 
-.date-group__header span {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-
 .ledger-toolbar {
   display: flex;
   align-items: center;

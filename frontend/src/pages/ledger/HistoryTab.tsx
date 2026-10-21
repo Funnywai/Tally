@@ -100,7 +100,6 @@ export function HistoryTab({ onRecordsChanged }: { readonly onRecordsChanged: ()
         <section key={group.date} className="date-group">
           <header className="date-group__header">
             <h3>{formatDateLong(group.date)}</h3>
-            <span>{group.records.length} 筆</span>
           </header>
           {group.records.map((record) => (
             <RecordRow

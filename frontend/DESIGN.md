@@ -264,7 +264,7 @@ only the tokens above.
 - `role="tablist"` / `role="tab"` / `aria-selected`; keyboard arrow support.
 
 ### RecordRow
-- Date group header: `YYYY年MM月DD日`, count, refresh time.
+- Date group header: `YYYY年MM月DD日`; no record count.
 - Record row: auto-fit player columns (name + signed score), per-record edit/delete icon buttons.
 - States: default, hover, focus, deleting (disabled + spinner), error inline.
 
