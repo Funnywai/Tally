@@ -278,6 +278,10 @@
   border: 0;
   background: transparent;
   color: var(--ivory);
+  /* The panel starts translated below the fold. If the dialog remains a scroll
+     container, WebKit scrolls it to the auto-focused close button and briefly
+     shows the sheet scrolled to its last rows. Keep scrolling on the panel. */
+  overflow: visible;
 }
 
 .sheet::backdrop {
