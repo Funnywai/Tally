@@ -1,5 +1,6 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useState } from 'react';
+import { isStandalone } from '../lib/standalone';
 import { DownloadIcon, RefreshIcon, ShareIcon, WifiOffIcon, XIcon } from './Icons';
 
 const INSTALL_DISMISSED_KEY = 'tally_install_dismissed_v1';
@@ -10,14 +11,6 @@ function isIosSafari(): boolean {
     /iPad|iPhone|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
   const isSafari = !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
   return isIos && isSafari;
-}
-
-function isStandalone(): boolean {
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    return true;
-  }
-  const value: unknown = Reflect.get(navigator, 'standalone');
-  return value === true;
 }
 
 function wasInstallDismissed(): boolean {
