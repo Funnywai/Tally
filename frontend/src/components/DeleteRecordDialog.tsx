@@ -59,9 +59,6 @@ export function DeleteRecordDialog({ open, record, onClose, onDeleted }: DeleteR
           <>
             <p className="confirm-message__date">{formatDateLong(record.date)}</p>
             <p className="confirm-message__summary">{summary}</p>
-            <p className="confirm-message__warning">
-              此操作無法復原，將同時刪除遊戲記錄及玩家歷史數據。
-            </p>
           </>
         )
       }

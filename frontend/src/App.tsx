@@ -68,7 +68,6 @@ function Shell({ offline, onRetry }: { readonly offline: boolean; readonly onRet
       <ConfirmDialog
         open={toolDialog === 'reset'}
         title="重設牌局"
-        message="所有番數、輸入、埋數將清零（玩家名稱保留）。此操作無法復原。"
         confirmLabel="確認重設"
         danger
         onConfirm={() => {

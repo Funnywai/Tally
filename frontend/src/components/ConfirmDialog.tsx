@@ -5,7 +5,7 @@ import { Sheet } from './Sheet';
 interface ConfirmDialogProps {
   readonly open: boolean;
   readonly title: string;
-  readonly message: ReactNode;
+  readonly message?: ReactNode;
   readonly confirmLabel?: string;
   readonly cancelLabel?: string;
   readonly danger?: boolean;
@@ -27,6 +27,16 @@ export function ConfirmDialog({
   onClose,
   children,
 }: ConfirmDialogProps) {
+  const body =
+    message === undefined || message === null ? (
+      children
+    ) : (
+      <>
+        <div className="confirm-message">{message}</div>
+        {children}
+      </>
+    );
+
   return (
     <Sheet
       open={open}
@@ -54,8 +64,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      <div className="confirm-message">{message}</div>
-      {children}
+      {body}
     </Sheet>
   );
 }

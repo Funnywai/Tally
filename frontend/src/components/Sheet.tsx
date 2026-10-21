@@ -6,7 +6,7 @@ interface SheetProps {
   readonly title: string;
   readonly description?: string | undefined;
   readonly onClose: () => void;
-  readonly children: ReactNode;
+  readonly children?: ReactNode;
   readonly footer?: ReactNode;
 }
 
@@ -75,7 +75,10 @@ export function Sheet({ open, title, description, onClose, children, footer }: S
         }
       }}
     >
-      <div ref={panelRef} className="sheet__panel">
+      <div
+        ref={panelRef}
+        className={`sheet__panel ${children === undefined || children === null ? 'sheet__panel--bodyless' : ''}`}
+      >
         <div className="sheet__handle" aria-hidden="true" />
         <header className="sheet__header">
           <div>
@@ -92,7 +95,9 @@ export function Sheet({ open, title, description, onClose, children, footer }: S
             <XIcon size={20} />
           </button>
         </header>
-        <div className="sheet__body">{children}</div>
+        {children === undefined || children === null ? null : (
+          <div className="sheet__body">{children}</div>
+        )}
         {footer === undefined ? null : <footer className="sheet__footer">{footer}</footer>}
       </div>
     </dialog>
