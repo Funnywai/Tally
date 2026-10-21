@@ -45,7 +45,6 @@ export function InstallBanner() {
       <ShareIcon size={18} className="banner__icon" />
       <p className="banner__text">
         <strong>加入主畫面</strong>
-        <span>Safari 分享 → 加入主畫面，離線都用到。</span>
       </p>
       <button
         type="button"
@@ -74,7 +73,6 @@ export function UpdateBanner() {
       <DownloadIcon size={18} className="banner__icon" />
       <p className="banner__text">
         <strong>有新版本</strong>
-        <span>更新後即可使用最新功能。</span>
       </p>
       <div className="banner__actions">
         <button
@@ -110,7 +108,6 @@ export function OfflineBanner({ offline, onRetry }: OfflineBannerProps) {
       <WifiOffIcon size={18} className="banner__icon" />
       <p className="banner__text">
         <strong>離線模式</strong>
-        <span>記分仍可使用；小氣簿需要連線。</span>
       </p>
       {onRetry === undefined ? null : (
         <button type="button" className="button button--small button--ghost" onClick={onRetry}>
