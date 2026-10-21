@@ -46,18 +46,19 @@ function StatsContent({ stats, year }: { readonly stats: PlayerStats; readonly y
         </span>
         <span className="stats-hero__meta">
           勝率 {formatWinRate(stats.winRate)} · {stats.yearGames} 場
+          {stats.allTimeGames === 0 ? '' : ` · 全部 ${stats.allTimeGames} 場`}
         </span>
       </div>
 
       <div className="stat-grid">
         <StatTile
-          label="最佳"
+          label="最佳（全期）"
           value={stats.best === null ? '—' : formatStatMoney(stats.best.score)}
           tone={toneOf(stats.best?.score ?? null)}
           meta={stats.best === null ? undefined : formatDateSlash(stats.best.date)}
         />
         <StatTile
-          label="最差"
+          label="最差（全期）"
           value={stats.worst === null ? '—' : formatStatMoney(stats.worst.score)}
           tone={toneOf(stats.worst?.score ?? null)}
           meta={stats.worst === null ? undefined : formatDateSlash(stats.worst.date)}
@@ -73,12 +74,6 @@ function StatsContent({ stats, year }: { readonly stats: PlayerStats; readonly y
           tone={toneOf(stats.avgLoss)}
         />
       </div>
-
-      <p className="ledger-footnote">
-        {stats.allTimeGames === 0
-          ? '尚無此玩家的記錄。'
-          : `全部 ${stats.allTimeGames} 場 · 最佳／最差為全期`}
-      </p>
     </>
   );
 }
@@ -98,7 +93,6 @@ export function StatsTab({ refreshKey }: { readonly refreshKey: number }) {
       <div className="ledger-toolbar">
         <div>
           <p className="ledger-toolbar__title">個人數據</p>
-          <p className="ledger-toolbar__meta">全量統計 · 不受載入頁數影響</p>
         </div>
       </div>
 
@@ -109,7 +103,6 @@ export function StatsTab({ refreshKey }: { readonly refreshKey: number }) {
           list="player-names"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="輸入或選擇名稱"
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
@@ -124,13 +117,7 @@ export function StatsTab({ refreshKey }: { readonly refreshKey: number }) {
         <p className="field-hint">名稱清單暫時無法載入，仍可手動輸入。</p>
       )}
 
-      {debounced === '' ? (
-        <EmptyState
-          icon={<UsersIcon size={24} />}
-          title="輸入玩家名稱"
-          description="查看全年累積、勝率與個人記錄。"
-        />
-      ) : null}
+      {debounced === '' ? <EmptyState icon={<UsersIcon size={24} />} title="輸入玩家名稱" /> : null}
 
       {debounced !== '' && stats.loading ? <Skeleton lines={3} /> : null}
 

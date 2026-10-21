@@ -94,9 +94,7 @@ export function HistoryTab({ onRecordsChanged }: { readonly onRecordsChanged: ()
         />
       ) : null}
 
-      {!loading && error === null && items.length === 0 ? (
-        <EmptyState title="尚無記錄" description="寫入小氣簿後，記錄會顯示在這裡。" />
-      ) : null}
+      {!loading && error === null && items.length === 0 ? <EmptyState title="尚無記錄" /> : null}
 
       {groups.map((group) => (
         <section key={group.date} className="date-group">

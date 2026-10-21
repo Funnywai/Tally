@@ -13,7 +13,6 @@ export function RankingTab({ refreshKey }: { readonly refreshKey: number }) {
       <div className="ledger-toolbar">
         <div>
           <p className="ledger-toolbar__title">排名榜</p>
-          <p className="ledger-toolbar__meta">全期總額 · 由高至低</p>
         </div>
       </div>
 
@@ -30,11 +29,7 @@ export function RankingTab({ refreshKey }: { readonly refreshKey: number }) {
 
       {!ranking.loading && ranking.error === null && ranking.data !== null ? (
         ranking.data.length === 0 ? (
-          <EmptyState
-            icon={<TrophyIcon size={24} />}
-            title="尚無數據"
-            description="寫入第一筆小氣簿後，排名會顯示在這裡。"
-          />
+          <EmptyState icon={<TrophyIcon size={24} />} title="尚無數據" />
         ) : (
           <div className="rank-wrap">
             <table className="rank-table">
