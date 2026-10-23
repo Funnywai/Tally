@@ -184,11 +184,12 @@ export async function createRecord(
 
 export async function updateRecord(
   id: string,
+  date: string,
   players: readonly { playerId: string; name: string; score: number }[],
 ): Promise<RecordItem> {
   return requestJson(
     `/api/records/${encodeURIComponent(id)}`,
-    jsonInit('PATCH', { players }),
+    jsonInit('PATCH', { date, players }),
     recordSchema,
   );
 }

@@ -19,6 +19,7 @@ interface EditRecordDialogProps {
 
 export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordDialogProps) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [date, setDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
       );
       setError(null);
       setLoading(false);
+      setDate(record.date);
     }
   }, [open, record]);
 
@@ -46,6 +48,10 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
 
   const save = async () => {
     if (record === null || loading) {
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
+      setError('請選擇有效日期。');
       return;
     }
     const players: { playerId: string; name: string; score: number }[] = [];
@@ -71,7 +77,7 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
     setLoading(true);
     setError(null);
     try {
-      const updated = await updateRecord(record.id, players);
+      const updated = await updateRecord(record.id, date, players);
       onSaved(updated);
     } catch (caught: unknown) {
       setError(isApiError(caught) ? caught.message : '更新失敗，請再試一次。');
@@ -84,7 +90,7 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
     <Sheet
       open={open && record !== null}
       title="編輯記錄"
-      description={record === null ? undefined : formatDateLong(record.date)}
+      description={record === null ? undefined : formatDateLong(date === '' ? record.date : date)}
       onClose={onClose}
       footer={
         <>
@@ -109,6 +115,19 @@ export function EditRecordDialog({ open, record, onClose, onSaved }: EditRecordD
       }
     >
       <div className="form-stack">
+        <label className="field">
+          <span className="field__label">日期</span>
+          <input
+            className="field__input"
+            type="date"
+            aria-label="記錄日期"
+            value={date}
+            onChange={(event) => {
+              setDate(event.target.value);
+              setError(null);
+            }}
+          />
+        </label>
         {drafts.map((draft, index) => (
           <div key={draft.playerId} className="edit-row">
             <label className="field">
