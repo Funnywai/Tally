@@ -62,7 +62,7 @@ export function SpecialDialog({ open, names, onClose, onConfirm }: SpecialDialog
     >
       <div className="dialog-section">
         <p className="dialog-label">玩家</p>
-        <div className="chip-grid chip-grid--two">
+        <div className="chip-grid chip-grid--four">
           {PLAYER_INDICES.map((playerIndex) => (
             <button
               key={playerIndex}

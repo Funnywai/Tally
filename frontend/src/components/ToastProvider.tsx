@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { AlertIcon, CheckIcon, InfoIcon, XIcon } from './Icons';
+import { AlertIcon, CheckIcon, InfoIcon } from './Icons';
 
 export type ToastKind = 'info' | 'success' | 'error';
 
@@ -60,14 +60,6 @@ function ToastCard({
           {toast.action.label}
         </button>
       )}
-      <button
-        type="button"
-        className="toast__close"
-        aria-label="關閉提示"
-        onClick={() => onDismiss(toast.id)}
-      >
-        <XIcon size={16} />
-      </button>
     </div>
   );
 }
