@@ -39,6 +39,8 @@ describe('STORAGE_KEYS', () => {
       outputs: 'mj_outputs',
       tikai: 'mj_tikai',
       accumulated: 'mj_accumulated',
+      divided: 'mj_divided',
+      written: 'mj_written',
       undoStack: 'mj_undo_stack',
     });
   });
@@ -50,6 +52,40 @@ describe('saveGameState / loadGameState', () => {
     const state = stateWithCell();
     saveGameState(storage, state);
     expect(loadGameState(storage)).toEqual(state);
+  });
+
+  it('round-trips the divided phase flag', () => {
+    const storage = new MemoryStorage();
+    saveGameState(storage, { ...stateWithCell(), divided: true });
+    expect(storage.getItem(STORAGE_KEYS.divided)).toBe('true');
+    expect(loadGameState(storage).divided).toBe(true);
+  });
+
+  it('defaults divided to false when the key is missing', () => {
+    expect(loadGameState(new MemoryStorage()).divided).toBe(false);
+  });
+
+  it('defaults divided to false when the stored value is invalid', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEYS.divided, JSON.stringify('yes'));
+    expect(loadGameState(storage).divided).toBe(false);
+  });
+
+  it('round-trips the written phase flag', () => {
+    const storage = new MemoryStorage();
+    saveGameState(storage, { ...stateWithCell(), divided: true, written: true });
+    expect(storage.getItem(STORAGE_KEYS.written)).toBe('true');
+    expect(loadGameState(storage).written).toBe(true);
+  });
+
+  it('defaults written to false when the key is missing', () => {
+    expect(loadGameState(new MemoryStorage()).written).toBe(false);
+  });
+
+  it('defaults written to false when the stored value is invalid', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEYS.written, JSON.stringify('yes'));
+    expect(loadGameState(storage).written).toBe(false);
   });
 
   it('returns defaults for an empty storage', () => {
@@ -109,6 +145,32 @@ describe('saveGameState / loadGameState', () => {
     const state = loadGameState(storage);
     expect(state.undoStack).toHaveLength(1);
     expect(state.undoStack[0]?.who).toBe('閒1');
+  });
+
+  it('parses a legacy snapshot without divided as false', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      STORAGE_KEYS.undoStack,
+      JSON.stringify([
+        {
+          accumulated: [5, -5, 0, 0],
+          inputs: [
+            [null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null],
+          ],
+          outputs: [0, 0, 0],
+          tikai: [false, false, false],
+          who: '÷4',
+          whoIdx: -1,
+          score: 0,
+          kind: 'divide',
+        },
+      ]),
+    );
+    const state = loadGameState(storage);
+    expect(state.undoStack).toHaveLength(1);
+    expect(state.undoStack[0]?.divided).toBe(false);
   });
 
   it('caps the undo stack at 50 entries', () => {

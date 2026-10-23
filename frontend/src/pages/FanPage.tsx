@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { SparkIcon } from '../components/Icons';
 import { NameInput } from '../components/NameInput';
 import { Numpad } from '../components/Numpad';
+import { SpecialDialog } from '../components/SpecialDialog';
 import { COLUMN_INDICES, type ColumnIndex } from '../lib/types';
 import { useGame } from '../state/GameProvider';
 import { useGameActions } from '../state/useGameActions';
@@ -35,6 +37,7 @@ export function FanPage() {
   const { state } = useGame();
   const actions = useGameActions();
   const [active, setActive] = useState<ActiveCell | null>(null);
+  const [specialOpen, setSpecialOpen] = useState(false);
 
   const activeValue = active === null ? null : (state.inputs[active.column][active.row] ?? null);
   const activeName = active === null ? '' : state.names[active.column];
@@ -126,6 +129,16 @@ export function FanPage() {
             }),
           )}
         </fieldset>
+
+        <button
+          type="button"
+          className="button button--outline button--block"
+          disabled={state.divided}
+          onClick={() => setSpecialOpen(true)}
+        >
+          <SparkIcon size={18} />
+          特別賞罰
+        </button>
       </div>
 
       <Numpad
@@ -139,6 +152,16 @@ export function FanPage() {
             actions.setCell(active.column, active.row, value);
           }
           setActive(null);
+        }}
+      />
+
+      <SpecialDialog
+        open={specialOpen}
+        names={state.names}
+        onClose={() => setSpecialOpen(false)}
+        onConfirm={(index, kind, score) => {
+          actions.special(index, kind, score);
+          setSpecialOpen(false);
         }}
       />
     </section>

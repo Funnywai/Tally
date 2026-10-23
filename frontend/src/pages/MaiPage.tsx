@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { FoodDialog } from '../components/FoodDialog';
-import { LoaderIcon, SparkIcon, UtensilsIcon } from '../components/Icons';
+import { LoaderIcon, UtensilsIcon } from '../components/Icons';
 import { Numpad } from '../components/Numpad';
-import { SpecialDialog } from '../components/SpecialDialog';
 import { TallyMark } from '../components/TallyMark';
 import { useToast } from '../components/ToastProvider';
 import { createRecord, isApiError } from '../lib/api';
-import { formatMoney, formatStatMoney } from '../lib/money';
+import { formatMoney, formatPlainScore, formatStatMoney } from '../lib/money';
+import { round1 } from '../lib/scoring';
 import { PLAYER_INDICES, type PlayerIndex } from '../lib/types';
 import { useGame } from '../state/GameProvider';
 import { useGameActions } from '../state/useGameActions';
@@ -14,7 +14,7 @@ import { useGameActions } from '../state/useGameActions';
 const DIVISORS: readonly (2 | 3 | 4)[] = [4, 3, 2];
 const PLAYER_ROWS: readonly (readonly PlayerIndex[])[] = [[1], [0, 2], [3]];
 
-type DialogKind = 'none' | 'special' | 'food';
+type DialogKind = 'none' | 'food';
 
 export function MaiPage() {
   const { state } = useGame();
@@ -24,8 +24,13 @@ export function MaiPage() {
   const [dialog, setDialog] = useState<DialogKind>('none');
   const [writing, setWriting] = useState(false);
 
+  const total = round1(state.accumulated.reduce((sum, value) => sum + value, 0));
+  const balanced = total === 0;
+  const divided = state.divided;
+  const written = state.written;
+
   const write = async () => {
-    if (writing) {
+    if (writing || !divided || written || !balanced) {
       return;
     }
     const names = PLAYER_INDICES.map((index) => state.names[index].trim());
@@ -41,6 +46,7 @@ export function MaiPage() {
           score: state.accumulated[index],
         })),
       );
+      actions.markWritten();
       showToast('已寫入小氣簿', 'success');
     } catch (caught: unknown) {
       showToast(isApiError(caught) ? caught.message : '寫入失敗，請再試一次。', 'error');
@@ -58,11 +64,23 @@ export function MaiPage() {
             埋數
           </h1>
         </div>
+        <div
+          className={`balance-chip ${balanced ? 'is-balanced' : 'is-unbalanced'}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="balance-chip__label">總和</span>
+          <span className="balance-chip__value">{formatPlainScore(total)}</span>
+          <span className="balance-chip__state">{balanced ? '已平' : '未平'}</span>
+        </div>
       </div>
 
       <div className="player-grid">
         {PLAYER_ROWS.map((row) => (
-          <div className="player-grid__row" key={row.join('-')}>
+          <div
+            className={`player-grid__row ${row.length === 2 ? 'player-grid__row--split' : ''}`}
+            key={row.join('-')}
+          >
             {row.map((index) => {
               const value = state.accumulated[index];
               const isMe = index === 3;
@@ -72,7 +90,11 @@ export function MaiPage() {
                   key={index}
                   type="button"
                   className={`player-card ${isMe ? 'is-me' : ''} ${tone}`}
-                  aria-label={`調整 ${state.names[index]} 的分數，目前 ${formatStatMoney(value)}`}
+                  aria-label={
+                    divided
+                      ? `調整 ${state.names[index]} 的分數，目前 ${formatStatMoney(value)}`
+                      : `調整 ${state.names[index]} 的分數，目前 ${formatPlainScore(value)} 分`
+                  }
                   onClick={() => setAdjustIndex(index)}
                 >
                   <span className="player-card__name">
@@ -80,7 +102,7 @@ export function MaiPage() {
                     {isMe ? <span className="player-card__me">我</span> : null}
                   </span>
                   <span key={value} className="player-card__score">
-                    {formatMoney(value)}
+                    {divided ? formatMoney(value) : formatPlainScore(value)}
                   </span>
                   {isMe ? <TallyMark size={72} className="player-card__watermark" /> : null}
                 </button>
@@ -98,36 +120,28 @@ export function MaiPage() {
               type="button"
               className="button button--outline"
               onClick={() => actions.divide(divisor)}
+              disabled={divided || !balanced}
             >
               ÷{divisor}
             </button>
           ))}
         </fieldset>
 
-        <div className="mai-actions__pair">
-          <button
-            type="button"
-            className="button button--outline"
-            onClick={() => setDialog('special')}
-          >
-            <SparkIcon size={18} />
-            特別賞罰
-          </button>
-          <button
-            type="button"
-            className="button button--outline"
-            onClick={() => setDialog('food')}
-          >
-            <UtensilsIcon size={18} />
-            計算飯錢
-          </button>
-        </div>
+        <button
+          type="button"
+          className="button button--outline button--block"
+          onClick={() => setDialog('food')}
+          disabled={!written}
+        >
+          <UtensilsIcon size={18} />
+          計算飯錢
+        </button>
 
         <button
           type="button"
           className="button button--primary button--block button--write"
           onClick={() => void write()}
-          disabled={writing}
+          disabled={writing || !divided || written || !balanced}
         >
           {writing ? <LoaderIcon size={18} className="spin" /> : null}
           {writing ? '寫入中…' : '寫入小氣簿'}
@@ -145,16 +159,6 @@ export function MaiPage() {
             actions.adjust(adjustIndex, value);
           }
           setAdjustIndex(null);
-        }}
-      />
-
-      <SpecialDialog
-        open={dialog === 'special'}
-        names={state.names}
-        onClose={() => setDialog('none')}
-        onConfirm={(index, kind, score) => {
-          actions.special(index, kind, score);
-          setDialog('none');
         }}
       />
 

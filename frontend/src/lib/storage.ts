@@ -19,6 +19,8 @@ export const STORAGE_KEYS = {
   outputs: 'mj_outputs',
   tikai: 'mj_tikai',
   accumulated: 'mj_accumulated',
+  divided: 'mj_divided',
+  written: 'mj_written',
   undoStack: 'mj_undo_stack',
 } as const;
 
@@ -30,6 +32,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function parseBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
 }
 
 function readJson(storage: StorageLike, key: string): unknown {
@@ -150,6 +156,7 @@ function parseSnapshot(value: unknown): UndoSnapshot | null {
   const inputs = parseInputs(value.inputs);
   const outputs = parseTripleNumbers(value.outputs);
   const tikai = parseTripleBooleans(value.tikai);
+  const divided = parseBoolean(value.divided) ?? false;
   const who = typeof value.who === 'string' ? value.who : null;
   const whoIdx = isFiniteNumber(value.whoIdx) ? value.whoIdx : null;
   const score = isFiniteNumber(value.score) ? value.score : null;
@@ -170,6 +177,7 @@ function parseSnapshot(value: unknown): UndoSnapshot | null {
     inputs,
     outputs,
     tikai,
+    divided,
     who,
     whoIdx,
     score,
@@ -202,6 +210,8 @@ export function loadGameState(storage: StorageLike): GameState {
     outputs: parseTripleNumbers(readJson(storage, STORAGE_KEYS.outputs)) ?? [0, 0, 0],
     tikai: parseTripleBooleans(readJson(storage, STORAGE_KEYS.tikai)) ?? [false, false, false],
     accumulated: parseQuadNumbers(readJson(storage, STORAGE_KEYS.accumulated)) ?? [0, 0, 0, 0],
+    divided: parseBoolean(readJson(storage, STORAGE_KEYS.divided)) ?? false,
+    written: parseBoolean(readJson(storage, STORAGE_KEYS.written)) ?? false,
     undoStack: parseUndoStack(readJson(storage, STORAGE_KEYS.undoStack)),
   };
 }
@@ -212,5 +222,7 @@ export function saveGameState(storage: StorageLike, state: GameState): void {
   storage.setItem(STORAGE_KEYS.outputs, JSON.stringify(state.outputs));
   storage.setItem(STORAGE_KEYS.tikai, JSON.stringify(state.tikai));
   storage.setItem(STORAGE_KEYS.accumulated, JSON.stringify(state.accumulated));
+  storage.setItem(STORAGE_KEYS.divided, JSON.stringify(state.divided));
+  storage.setItem(STORAGE_KEYS.written, JSON.stringify(state.written));
   storage.setItem(STORAGE_KEYS.undoStack, JSON.stringify(state.undoStack));
 }

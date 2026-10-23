@@ -22,6 +22,8 @@ describe('initialGameState', () => {
     expect(initialGameState.outputs).toEqual([0, 0, 0]);
     expect(initialGameState.tikai).toEqual([false, false, false]);
     expect(initialGameState.accumulated).toEqual([0, 0, 0, 0]);
+    expect(initialGameState.divided).toBe(false);
+    expect(initialGameState.written).toBe(false);
     expect(initialGameState.undoStack).toEqual([]);
   });
 });
@@ -141,12 +143,38 @@ describe('FOOD', () => {
 });
 
 describe('DIVIDE', () => {
-  it('does nothing when every score is zero', () => {
+  it('records the phase change and pushes undo even when every score is zero', () => {
     const state = gameReducer(initialGameState, { type: 'DIVIDE', divisor: 4 });
-    expect(state).toEqual(initialGameState);
+    expect(state.accumulated).toEqual([0, 0, 0, 0]);
+    expect(state.divided).toBe(true);
+    expect(state.written).toBe(false);
+    expect(state.undoStack).toHaveLength(1);
+    expect(state.undoStack[0]?.kind).toBe('divide');
+    expect(state.undoStack[0]?.divided).toBe(false);
   });
 
-  it('divides every score and pushes undo', () => {
+  it('does nothing when the total is not zero', () => {
+    const adjusted = gameReducer(initialGameState, {
+      type: 'ADJUST',
+      index: 0,
+      value: 10,
+    });
+    const state = gameReducer(adjusted, { type: 'DIVIDE', divisor: 2 });
+    expect(state).toBe(adjusted);
+    expect(state.divided).toBe(false);
+    expect(state.accumulated).toEqual([10, 0, 0, 0]);
+  });
+
+  it('does nothing after the round was already divided', () => {
+    let state = gameReducer(initialGameState, { type: 'ADJUST', index: 0, value: 10 });
+    state = gameReducer(state, { type: 'ADJUST', index: 3, value: -10 });
+    state = gameReducer(state, { type: 'DIVIDE', divisor: 2 });
+    const once = state;
+    state = gameReducer(state, { type: 'DIVIDE', divisor: 2 });
+    expect(state).toBe(once);
+  });
+
+  it('divides every score, sets the phase flag, and pushes undo', () => {
     let state = gameReducer(initialGameState, {
       type: 'ADJUST',
       index: 0,
@@ -154,9 +182,76 @@ describe('DIVIDE', () => {
     });
     state = gameReducer(state, { type: 'ADJUST', index: 1, value: 5 });
     state = gameReducer(state, { type: 'ADJUST', index: 2, value: -3 });
+    state = gameReducer(state, { type: 'ADJUST', index: 3, value: -12 });
     state = gameReducer(state, { type: 'DIVIDE', divisor: 3 });
-    expect(state.accumulated).toEqual([3.3, 1.7, -1, 0]);
-    expect(state.undoStack).toHaveLength(4);
+    expect(state.accumulated).toEqual([3.3, 1.7, -1, -4]);
+    expect(state.divided).toBe(true);
+    expect(state.undoStack).toHaveLength(5);
+  });
+
+  it('restores the pre-divide phase and scores on UNDO', () => {
+    let state = gameReducer(initialGameState, {
+      type: 'ADJUST',
+      index: 0,
+      value: 10,
+    });
+    state = gameReducer(state, { type: 'ADJUST', index: 3, value: -10 });
+    state = gameReducer(state, { type: 'DIVIDE', divisor: 2 });
+    expect(state.divided).toBe(true);
+    state = gameReducer(state, { type: 'UNDO' });
+    expect(state.divided).toBe(false);
+    expect(state.accumulated).toEqual([10, 0, 0, -10]);
+  });
+});
+
+describe('MARK_WRITTEN', () => {
+  function dividedState(): GameState {
+    let state = gameReducer(initialGameState, { type: 'ADJUST', index: 0, value: 10 });
+    state = gameReducer(state, { type: 'ADJUST', index: 3, value: -10 });
+    return gameReducer(state, { type: 'DIVIDE', divisor: 2 });
+  }
+
+  it('marks the round written and clears the undo stack', () => {
+    const state = gameReducer(dividedState(), { type: 'MARK_WRITTEN' });
+    expect(state.written).toBe(true);
+    expect(state.divided).toBe(true);
+    expect(state.undoStack).toEqual([]);
+  });
+
+  it('does nothing before division', () => {
+    const state = gameReducer(initialGameState, { type: 'MARK_WRITTEN' });
+    expect(state.written).toBe(false);
+  });
+
+  it('does nothing when the round was already written', () => {
+    const written = gameReducer(dividedState(), { type: 'MARK_WRITTEN' });
+    const state = gameReducer(written, { type: 'MARK_WRITTEN' });
+    expect(state).toBe(written);
+  });
+
+  it('restores divided on UNDO without changing written', () => {
+    const state: GameState = {
+      ...initialGameState,
+      accumulated: [5, 0, 0, -5],
+      divided: true,
+      written: true,
+      undoStack: [
+        {
+          accumulated: [10, 0, 0, -10],
+          inputs: initialGameState.inputs,
+          outputs: [0, 0, 0],
+          tikai: [false, false, false],
+          divided: false,
+          who: '÷2',
+          whoIdx: -1,
+          score: 0,
+          kind: 'divide',
+        },
+      ],
+    };
+    const undone = gameReducer(state, { type: 'UNDO' });
+    expect(undone.divided).toBe(false);
+    expect(undone.written).toBe(true);
   });
 });
 
@@ -182,7 +277,26 @@ describe('RESET', () => {
     expect(state.inputs).toEqual(initialGameState.inputs);
     expect(state.outputs).toEqual([0, 0, 0]);
     expect(state.accumulated).toEqual([0, 0, 0, 0]);
+    expect(state.divided).toBe(false);
+    expect(state.written).toBe(false);
     expect(state.undoStack).toEqual([]);
+  });
+
+  it('clears the divided phase after a division', () => {
+    let state = gameReducer(initialGameState, { type: 'ADJUST', index: 0, value: 10 });
+    state = gameReducer(state, { type: 'ADJUST', index: 3, value: -10 });
+    state = gameReducer(state, { type: 'DIVIDE', divisor: 2 });
+    expect(state.divided).toBe(true);
+    state = gameReducer(state, { type: 'RESET' });
+    expect(state.divided).toBe(false);
+  });
+
+  it('clears the written phase after a write', () => {
+    let state = gameReducer(initialGameState, { type: 'DIVIDE', divisor: 4 });
+    state = gameReducer(state, { type: 'MARK_WRITTEN' });
+    expect(state.written).toBe(true);
+    state = gameReducer(state, { type: 'RESET' });
+    expect(state.written).toBe(false);
   });
 });
 
@@ -233,6 +347,7 @@ describe('describeUndo', () => {
         ],
         outputs: [0, 0, 0],
         tikai: [false, false, false],
+        divided: false,
         who: '閒1',
         whoIdx: 0,
         score: 12,
@@ -252,6 +367,7 @@ describe('describeUndo', () => {
         ],
         outputs: [0, 0, 0],
         tikai: [false, false, false],
+        divided: false,
         who: '÷4',
         whoIdx: -1,
         score: 0,

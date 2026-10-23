@@ -16,6 +16,7 @@ export interface UndoSnapshot {
   readonly inputs: Triple<Column>;
   readonly outputs: Triple<number>;
   readonly tikai: Triple<boolean>;
+  readonly divided: boolean;
   readonly who: string;
   readonly whoIdx: number;
   readonly score: number;
@@ -28,6 +29,8 @@ export interface GameState {
   readonly outputs: Triple<number>;
   readonly tikai: Triple<boolean>;
   readonly accumulated: Quad<number>;
+  readonly divided: boolean;
+  readonly written: boolean;
   readonly undoStack: UndoSnapshot[];
 }
 
@@ -43,6 +46,7 @@ export type GameAction =
   | { readonly type: 'ZHAO'; readonly column: ColumnIndex }
   | { readonly type: 'ADJUST'; readonly index: PlayerIndex; readonly value: number }
   | { readonly type: 'DIVIDE'; readonly divisor: 2 | 3 | 4 }
+  | { readonly type: 'MARK_WRITTEN' }
   | {
       readonly type: 'SPECIAL';
       readonly index: PlayerIndex;
@@ -70,6 +74,8 @@ export const initialGameState: GameState = {
   outputs: [0, 0, 0],
   tikai: [false, false, false],
   accumulated: [0, 0, 0, 0],
+  divided: false,
+  written: false,
   undoStack: [],
 };
 

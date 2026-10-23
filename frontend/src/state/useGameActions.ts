@@ -12,6 +12,7 @@ export interface GameActions {
   readonly zhao: (column: ColumnIndex) => void;
   readonly adjust: (index: PlayerIndex, value: number) => void;
   readonly divide: (divisor: 2 | 3 | 4) => void;
+  readonly markWritten: () => void;
   readonly special: (index: PlayerIndex, kind: 'win' | 'lose', score: 5 | 10) => void;
   readonly food: (paid: Quad<number>, owed: Quad<number>) => void;
   readonly reset: () => void;
@@ -94,16 +95,15 @@ export function useGameActions(): GameActions {
 
   const divide = useCallback(
     (divisor: 2 | 3 | 4) => {
-      const current = stateRef.current;
-      if (current.accumulated.every((value) => value === 0)) {
-        showToast('分數全為 0，無需除數');
-        return;
-      }
       dispatch({ type: 'DIVIDE', divisor });
       withUndo(`已 ÷${divisor}`);
     },
-    [dispatch, showToast, withUndo],
+    [dispatch, withUndo],
   );
+
+  const markWritten = useCallback(() => {
+    dispatch({ type: 'MARK_WRITTEN' });
+  }, [dispatch]);
 
   const special = useCallback(
     (index: PlayerIndex, kind: 'win' | 'lose', score: 5 | 10) => {
@@ -156,6 +156,7 @@ export function useGameActions(): GameActions {
     zhao,
     adjust,
     divide,
+    markWritten,
     special,
     food,
     reset,

@@ -118,15 +118,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, accumulated, undoStack: pushUndo(state, snapshot) };
     }
     case 'DIVIDE': {
-      if (state.accumulated.every((value) => value === 0)) {
+      const total = round1(state.accumulated.reduce((sum, value) => sum + value, 0));
+      if (state.divided || total !== 0) {
         return state;
       }
       const snapshot = snapshotOf(state, `÷${action.divisor}`, -1, 0, 'divide');
       return {
         ...state,
         accumulated: divideAll(state.accumulated, action.divisor),
+        divided: true,
+        written: false,
         undoStack: pushUndo(state, snapshot),
       };
+    }
+    case 'MARK_WRITTEN': {
+      if (!state.divided || state.written) {
+        return state;
+      }
+      return { ...state, written: true, undoStack: [] };
     }
     case 'SPECIAL': {
       const snapshot = snapshotOf(
@@ -162,6 +171,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         outputs: [0, 0, 0],
         tikai: [false, false, false],
         accumulated: [0, 0, 0, 0],
+        divided: false,
+        written: false,
         undoStack: [],
       };
     case 'RENAME_ALL': {
@@ -227,6 +238,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         inputs: cloneInputs(snapshot.inputs),
         outputs: [...snapshot.outputs],
         tikai: [...snapshot.tikai],
+        divided: snapshot.divided,
         undoStack: state.undoStack.slice(0, -1),
       };
     }

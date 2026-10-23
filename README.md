@@ -396,9 +396,9 @@ CDNs, logos, or brand copy are used.
 - Boot probe is `GET /api/players`: `200` = authenticated, `401` = login, network/5xx = offline mode
   with retry. Any API `401` returns to the login screen.
 - Today's draft lives in `localStorage` under exactly `mj_names`, `mj_inputs`, `mj_outputs`,
-  `mj_tikai`, `mj_accumulated`, `mj_undo_stack`. The server is the ledger truth; localStorage is only
-  the current day's draft. The install banner's dismissal uses `tally_install_dismissed_v1`; it is a
-  UI preference only, never a session or token.
+  `mj_tikai`, `mj_accumulated`, `mj_divided`, `mj_written`, `mj_undo_stack`. The server is the ledger
+  truth; localStorage is only the current day's draft. The install banner's dismissal uses
+  `tally_install_dismissed_v1`; it is a UI preference only, never a session or token.
 
 ### PWA
 

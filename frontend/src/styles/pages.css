@@ -156,6 +156,61 @@
     0 0 0 3px var(--cinnabar-wash);
 }
 
+.balance-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-hairline) solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--ink-850);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.balance-chip__label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.balance-chip__value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.balance-chip__state {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.balance-chip__state::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  vertical-align: 1px;
+}
+
+.balance-chip.is-balanced .balance-chip__state {
+  color: var(--jade);
+}
+
+.balance-chip.is-unbalanced {
+  border-color: var(--cinnabar-border);
+  background: var(--coral-wash-soft);
+}
+
+.balance-chip.is-unbalanced .balance-chip__value,
+.balance-chip.is-unbalanced .balance-chip__state {
+  color: var(--coral);
+}
+
 .player-grid {
   display: flex;
   flex-direction: column;
@@ -168,6 +223,10 @@
   justify-content: center;
   gap: var(--space-3-5);
   width: 100%;
+}
+
+.player-grid__row--split {
+  justify-content: space-between;
 }
 
 .player-card {
@@ -264,12 +323,6 @@
 .divide-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-1-5);
-}
-
-.mai-actions__pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-1-5);
 }
 

@@ -17,6 +17,7 @@ export function snapshotOf(
     inputs: cloneInputs(state.inputs),
     outputs: [...state.outputs],
     tikai: [...state.tikai],
+    divided: state.divided,
     who,
     whoIdx,
     score,

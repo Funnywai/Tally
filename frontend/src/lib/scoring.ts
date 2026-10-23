@@ -58,10 +58,10 @@ export function computeFood(
 }
 
 export function divideAll(accumulated: Quad<number>, divisor: number): Quad<number> {
-  return [
-    round1(accumulated[0] / divisor),
-    round1(accumulated[1] / divisor),
-    round1(accumulated[2] / divisor),
-    round1(accumulated[3] / divisor),
-  ];
+  const target = round1(accumulated.reduce((sum, value) => sum + value, 0) / divisor);
+  const first = round1(accumulated[0] / divisor);
+  const second = round1(accumulated[1] / divisor);
+  const third = round1(accumulated[2] / divisor);
+  const fourth = round1(target - first - second - third);
+  return [first, second, third, fourth];
 }

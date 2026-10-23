@@ -91,6 +91,17 @@ describe('divideAll', () => {
   it('normalises negative zero', () => {
     expect(divideAll([-0.04, 0, 0, 0], 4)).toEqual([0, 0, 0, 0]);
   });
+
+  it('preserves a zero total by giving the residual to the fourth player', () => {
+    const result = divideAll([10, 5, -3, -12], 4);
+    expect(result).toEqual([2.5, 1.3, -0.7, -3.1]);
+    expect(round1(result.reduce((sum, value) => sum + value, 0))).toBe(0);
+  });
+
+  it('keeps a nonzero total at the rounded divided total', () => {
+    const result = divideAll([10, 5, -3, 0], 3);
+    expect(round1(result.reduce((sum, value) => sum + value, 0))).toBe(4);
+  });
 });
 
 describe('round1', () => {
