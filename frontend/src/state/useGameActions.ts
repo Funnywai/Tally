@@ -63,9 +63,14 @@ export function useGameActions(): GameActions {
 
   const tikai = useCallback(
     (column: ColumnIndex) => {
+      const current = stateRef.current;
+      if (current.tikai[column]) {
+        return;
+      }
       dispatch({ type: 'TIKAI', column });
+      withUndo(`${current.names[column]} 踢半`);
     },
-    [dispatch],
+    [dispatch, withUndo],
   );
 
   const zhao = useCallback(

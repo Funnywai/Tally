@@ -24,7 +24,7 @@ export const STORAGE_KEYS = {
   undoStack: 'mj_undo_stack',
 } as const;
 
-const UNDO_KINDS: readonly UndoKind[] = ['zhao', 'adjust', 'divide', 'special', 'food'];
+const UNDO_KINDS: readonly UndoKind[] = ['zhao', 'adjust', 'tikai', 'divide', 'special', 'food'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

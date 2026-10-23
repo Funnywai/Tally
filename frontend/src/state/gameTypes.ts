@@ -9,7 +9,7 @@ import {
 
 export const DEFAULT_NAMES: Quad<string> = ['user 1', 'user 2', 'user 3', 'me'];
 
-export type UndoKind = 'zhao' | 'adjust' | 'divide' | 'special' | 'food';
+export type UndoKind = 'zhao' | 'adjust' | 'tikai' | 'divide' | 'special' | 'food';
 
 export interface UndoSnapshot {
   readonly accumulated: Quad<number>;

@@ -173,6 +173,32 @@ describe('saveGameState / loadGameState', () => {
     expect(state.undoStack[0]?.divided).toBe(false);
   });
 
+  it('preserves a tikai undo kind', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      STORAGE_KEYS.undoStack,
+      JSON.stringify([
+        {
+          accumulated: [0, 0, 0, 0],
+          inputs: [
+            [null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null],
+          ],
+          outputs: [5, 0, 0],
+          tikai: [false, false, false],
+          divided: false,
+          who: 'user 1',
+          whoIdx: 0,
+          score: 0,
+          kind: 'tikai',
+        },
+      ]),
+    );
+    const state = loadGameState(storage);
+    expect(state.undoStack[0]?.kind).toBe('tikai');
+  });
+
   it('caps the undo stack at 50 entries', () => {
     const storage = new MemoryStorage();
     const snapshot = {

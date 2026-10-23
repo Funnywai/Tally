@@ -49,12 +49,20 @@ describe('SET_CELL', () => {
 });
 
 describe('TIKAI', () => {
-  it('floors half the output without touching inputs and without an undo snapshot', () => {
+  it('floors half the output, pushes undo, and UNDO restores output and tikai', () => {
     let state = withCell(initialGameState, 0, 0, 5);
     state = gameReducer(state, { type: 'TIKAI', column: 0 });
     expect(state.outputs[0]).toBe(2);
     expect(state.inputs[0][0]).toBe(5);
     expect(state.tikai[0]).toBe(true);
+    expect(state.undoStack).toHaveLength(1);
+    expect(state.undoStack[0]?.kind).toBe('tikai');
+    expect(state.undoStack[0]?.outputs[0]).toBe(5);
+    expect(state.undoStack[0]?.tikai[0]).toBe(false);
+
+    state = gameReducer(state, { type: 'UNDO' });
+    expect(state.outputs[0]).toBe(5);
+    expect(state.tikai[0]).toBe(false);
     expect(state.undoStack).toHaveLength(0);
   });
 
@@ -374,5 +382,25 @@ describe('describeUndo', () => {
         kind: 'divide',
       }),
     ).toBe('已復原：÷4');
+  });
+
+  it('describes a tikai', () => {
+    expect(
+      describeUndo({
+        accumulated: [0, 0, 0, 0],
+        inputs: [
+          [null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null],
+        ],
+        outputs: [0, 0, 0],
+        tikai: [false, false, false],
+        divided: false,
+        who: 'user 1',
+        whoIdx: 0,
+        score: 0,
+        kind: 'tikai',
+      }),
+    ).toBe('已復原：user 1 踢半');
   });
 });

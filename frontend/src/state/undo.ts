@@ -36,6 +36,8 @@ export function describeUndo(snapshot: UndoSnapshot): string {
       return `已復原：${snapshot.who} 找數 ${formatPlainScore(snapshot.score)} 分`;
     case 'adjust':
       return `已復原：${snapshot.who} 調整 ${formatPlainScore(snapshot.score)} 分`;
+    case 'tikai':
+      return `已復原：${snapshot.who} 踢半`;
     case 'divide':
       return `已復原：${snapshot.who}`;
     case 'special':

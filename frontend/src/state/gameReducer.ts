@@ -68,11 +68,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.tikai[action.column]) {
         return state;
       }
+      const snapshot = snapshotOf(state, state.names[action.column], action.column, 0, 'tikai');
       const outputs: Triple<number> = [...state.outputs];
       outputs[action.column] = applyTikai(state.outputs[action.column]);
       const tikai: Triple<boolean> = [...state.tikai];
       tikai[action.column] = true;
-      return { ...state, outputs, tikai };
+      return { ...state, outputs, tikai, undoStack: pushUndo(state, snapshot) };
     }
     case 'ZHAO': {
       const score = state.outputs[action.column];
