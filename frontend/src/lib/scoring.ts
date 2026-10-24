@@ -22,11 +22,12 @@ export function computeOutput(column: readonly (number | null)[]): number {
     }
     sum += value * 1.5 ** (filled.length - 1 - index);
   }
-  return Math.ceil(sum);
+  return sum >= 0 ? Math.ceil(sum) : Math.floor(sum);
 }
 
 export function applyTikai(output: number): number {
-  return Math.floor(output / 2);
+  const halved = output >= 0 ? Math.floor(output / 2) : Math.ceil(output / 2);
+  return halved === 0 ? 0 : halved;
 }
 
 export function computeSpecial(

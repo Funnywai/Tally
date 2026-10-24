@@ -29,24 +29,31 @@ describe('computeOutput', () => {
     expect(computeOutput([null, 2, null, 3, null, null, null])).toBe(6);
   });
 
-  it('supports negative values and ceils the final sum', () => {
-    expect(computeOutput([-2, 1, null, null, null, null, null])).toBe(-2);
-    expect(computeOutput([-1, -1, null, null, null, null, null])).toBe(-2);
+  it('rounds negative sums down, away from zero', () => {
+    expect(computeOutput([-49, -18, null, null, null, null, null])).toBe(-92);
+    expect(computeOutput([-49, -19, null, null, null, null, null])).toBe(-93);
+    expect(computeOutput([-1, -1, null, null, null, null, null])).toBe(-3);
     expect(computeOutput([-1, null, null, null, null, null, null])).toBe(-1);
   });
 
   it('ceils a fractional positive result', () => {
     expect(computeOutput([1, 1, null, null, null, null, null])).toBe(3);
+    expect(computeOutput([10, 20, null, null, null, null, null])).toBe(35);
   });
 });
 
 describe('applyTikai', () => {
   it('floors half of a positive output', () => {
     expect(applyTikai(5)).toBe(2);
+    expect(applyTikai(35)).toBe(17);
   });
 
-  it('floors half of a negative output', () => {
-    expect(applyTikai(-3)).toBe(-2);
+  it('rounds negative halves toward zero with ceil', () => {
+    expect(applyTikai(-1)).toBe(0);
+    expect(applyTikai(-3)).toBe(-1);
+    expect(applyTikai(-91)).toBe(-45);
+    expect(applyTikai(-92)).toBe(-46);
+    expect(applyTikai(-93)).toBe(-46);
   });
 
   it('leaves zero at zero', () => {
