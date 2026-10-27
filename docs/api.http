@@ -1,6 +1,7 @@
 @baseUrl = http://127.0.0.1:3100
 @passcode = replace-with-local-passcode
 @recordId = replace-with-record-uuid
+@betId = replace-with-bet-uuid
 
 # VS Code REST Client keeps the Set-Cookie from the login request in its cookie
 # jar for this host. Run "Login" once, then the authenticated requests below.
@@ -64,6 +65,54 @@ GET {{baseUrl}}/api/stats?player=閒1&year=2026
 
 ### Ranking (all-time, full dataset)
 GET {{baseUrl}}/api/ranking
+
+### Create a pending single bet
+POST {{baseUrl}}/api/bets
+Content-Type: application/json
+
+{
+  "date": "2026-10-26",
+  "stake": 500,
+  "result": "pending",
+  "legs": [
+    {
+      "match": "曼聯 vs 車路士",
+      "market": "handicap",
+      "selection": "曼聯 -0.5",
+      "odds": 1.95
+    }
+  ]
+}
+
+### Create a 2-leg parlay
+POST {{baseUrl}}/api/bets
+Content-Type: application/json
+
+{
+  "stake": 200,
+  "legs": [
+    { "match": "曼聯 vs 車路士", "market": "handicap", "selection": "曼聯 -0.5", "odds": 1.95 },
+    { "match": "阿仙奴 vs 利物浦", "market": "totals", "selection": "大 2.5", "odds": 1.9 }
+  ]
+}
+
+### List bets (default limit 50; status: all, pending, settled)
+GET {{baseUrl}}/api/bets?limit=50&status=all
+
+### Settle a bet
+PATCH {{baseUrl}}/api/bets/{{betId}}
+Content-Type: application/json
+
+{ "result": "win" }
+
+### Bet overview (today/month profit, pending count and stake)
+GET {{baseUrl}}/api/bets/overview
+
+### Bet stats (period: month, year, all; defaults to month)
+GET {{baseUrl}}/api/bets/stats?period=month
+
+### Delete a bet (legs cascade)
+DELETE {{baseUrl}}/api/bets/{{betId}}
 
 ### Logout (JSON content type is required to block cross-site form logout)
 POST {{baseUrl}}/api/auth/logout

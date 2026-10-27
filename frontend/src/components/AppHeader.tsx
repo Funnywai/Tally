@@ -1,13 +1,14 @@
 import { formatStatMoney } from '../lib/money';
-import { WrenchIcon } from './Icons';
+import { FootballIcon, WrenchIcon } from './Icons';
 import { TallyMark } from './TallyMark';
 
 interface AppHeaderProps {
   readonly todayTotal: number;
   readonly onOpenTools: () => void;
+  readonly onEnterBet: () => void;
 }
 
-export function AppHeader({ todayTotal, onOpenTools }: AppHeaderProps) {
+export function AppHeader({ todayTotal, onOpenTools, onEnterBet }: AppHeaderProps) {
   const tone = todayTotal > 0 ? 'positive' : todayTotal < 0 ? 'negative' : 'zero';
   return (
     <header className="app-header">
@@ -19,6 +20,16 @@ export function AppHeader({ todayTotal, onOpenTools }: AppHeaderProps) {
         </div>
       </div>
       <div className="app-header__actions">
+        <button
+          type="button"
+          className="app-header__mode-switch"
+          aria-label="切換到賭球"
+          title="賭球"
+          onClick={onEnterBet}
+        >
+          <FootballIcon size={16} />
+          <span>賭球</span>
+        </button>
         <span className={`today-chip today-chip--${tone}`}>
           <span className="today-chip__label">今日</span>
           <span className="today-chip__value">{formatStatMoney(todayTotal)}</span>

@@ -64,6 +64,26 @@
   flex: none;
 }
 
+.app-header__mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--ink-850);
+  border: var(--border-hairline) solid var(--line);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.app-header__mode-switch:hover {
+  color: var(--ivory);
+  border-color: var(--line-strong);
+}
+
 .today-chip {
   display: inline-flex;
   align-items: baseline;

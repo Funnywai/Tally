@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BetApp } from './bet/BetApp';
 import { AppHeader } from './components/AppHeader';
 import { InstallBanner, OfflineBanner, UpdateBanner } from './components/Banners';
 import { BottomNav } from './components/BottomNav';
@@ -8,7 +9,7 @@ import { SwapDialog } from './components/SwapDialog';
 import { TallyMark } from './components/TallyMark';
 import { ToastProvider } from './components/ToastProvider';
 import { type ToolAction, ToolsSheet } from './components/ToolsSheet';
-import { useHashRoute } from './hooks/useHashRoute';
+import { type Route, useHashRoute } from './hooks/useHashRoute';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { fetchPlayers, isApiError } from './lib/api';
 import { FanPage } from './pages/FanPage';
@@ -30,10 +31,19 @@ function LoadingScreen() {
   );
 }
 
-function Shell({ offline, onRetry }: { readonly offline: boolean; readonly onRetry: () => void }) {
+function MahjongShell({
+  route,
+  navigate,
+  offline,
+  onRetry,
+}: {
+  readonly route: Exclude<Route, 'bet'>;
+  readonly navigate: (route: Route) => void;
+  readonly offline: boolean;
+  readonly onRetry: () => void;
+}) {
   const { state } = useGame();
   const actions = useGameActions();
-  const { route, navigate } = useHashRoute();
   const [toolsOpen, setToolsOpen] = useState(false);
   const [toolDialog, setToolDialog] = useState<ToolDialog>('none');
 
@@ -48,7 +58,11 @@ function Shell({ offline, onRetry }: { readonly offline: boolean; readonly onRet
 
   return (
     <div className="app-shell">
-      <AppHeader todayTotal={state.accumulated[3]} onOpenTools={() => setToolsOpen(true)} />
+      <AppHeader
+        todayTotal={state.accumulated[3]}
+        onOpenTools={() => setToolsOpen(true)}
+        onEnterBet={() => navigate('bet')}
+      />
       <div className="banner-stack">
         <UpdateBanner />
         <OfflineBanner offline={offline} onRetry={onRetry} />
@@ -100,6 +114,28 @@ function Shell({ offline, onRetry }: { readonly offline: boolean; readonly onRet
   );
 }
 
+function AuthenticatedApp({
+  offline,
+  onRetry,
+}: {
+  readonly offline: boolean;
+  readonly onRetry: () => void;
+}) {
+  const { route, navigate } = useHashRoute();
+
+  if (route === 'bet') {
+    return <BetApp onExit={() => navigate('fan')} offline={offline} />;
+  }
+
+  return (
+    <GameProvider>
+      <ToastProvider>
+        <MahjongShell route={route} navigate={navigate} offline={offline} onRetry={onRetry} />
+      </ToastProvider>
+    </GameProvider>
+  );
+}
+
 function AppContent() {
   const [auth, setAuth] = useState<AuthState>('probing');
   const online = useOnlineStatus();
@@ -136,15 +172,9 @@ function AppContent() {
     return <LoginPage onAuthenticated={() => setAuth('ready')} />;
   }
 
-  return <Shell offline={auth === 'offline' || !online} onRetry={() => void probe()} />;
+  return <AuthenticatedApp offline={auth === 'offline' || !online} onRetry={() => void probe()} />;
 }
 
 export default function App() {
-  return (
-    <ToastProvider>
-      <GameProvider>
-        <AppContent />
-      </GameProvider>
-    </ToastProvider>
-  );
+  return <AppContent />;
 }

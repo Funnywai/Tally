@@ -14,6 +14,7 @@ import {
 import { mountStatic } from './http/static.js';
 import type { Logger } from './logger.js';
 import { createAuthRouter } from './routes/auth.js';
+import { createBetsRouter } from './routes/bets.js';
 import { createHealthRouter } from './routes/health.js';
 import { createPlayersRouter } from './routes/players.js';
 import { createRankingRouter } from './routes/ranking.js';
@@ -42,6 +43,7 @@ export function createApp(deps: AppDeps): Express {
 
   const auth = requireAuth(deps.config);
   app.use('/api/records', auth, createRecordsRouter(deps.db));
+  app.use('/api/bets', auth, createBetsRouter(deps.db));
   app.use('/api/players', auth, createPlayersRouter(deps.db));
   app.use('/api/stats', auth, createStatsRouter(deps.db));
   app.use('/api/ranking', auth, createRankingRouter(deps.db));

@@ -42,6 +42,16 @@ export function WrenchIcon({ size = 20, className }: IconProps) {
   );
 }
 
+export function FootballIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg {...baseProps(size, className)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7l4.5 3.2-1.7 5.3H9.2L7.5 10.2z" />
+      <path d="M12 3v4M20.5 9.5l-4 0.8M18 20l-2.6-3.4M6.6 20l2.6-3.4M3.5 9.5l4 0.8" />
+    </svg>
+  );
+}
+
 export function XIcon({ size = 20, className }: IconProps) {
   return (
     <svg {...baseProps(size, className)}>

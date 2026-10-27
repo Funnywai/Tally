@@ -19,7 +19,9 @@ export async function getTestDb(): Promise<Db> {
 
 export async function resetDb(): Promise<void> {
   const db = await getTestDb();
-  await db.pool.query('truncate table settlements, games, players restart identity cascade');
+  await db.pool.query(
+    'truncate table bet_legs, bets, settlements, games, players restart identity cascade',
+  );
 }
 
 export async function closeTestDb(): Promise<void> {
