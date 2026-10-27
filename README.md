@@ -47,9 +47,11 @@ src/
   migrate.ts                migration runner + CLI
 frontend/
   src/                      React app (pages, components, state, lib, styles)
+  src/bet/                  standalone betting ledger (API, pages, components, CSS)
   public/                   PWA icons, maskable icons, apple-touch-icon, startup images
   tests/                    Vitest unit tests for scoring, money, dates, reducer, storage
   DESIGN.md                 Phase B design-system contract (tokens, components, motion, a11y)
+  BET-DESIGN.md             betting visual contract (separate from DESIGN.md)
   vite.config.ts            Vite + PWA config; dev proxy to 127.0.0.1:3100
 scripts/
   import-firebase-json.mjs  idempotent Firebase RTDB import + --verify
@@ -134,8 +136,8 @@ pnpm test:web
 ```
 
 The frontend is a standalone pnpm package with its own `frontend/pnpm-lock.yaml`. It uses hash routes
-(`#fan`, `#mai`, `#ledger`), same-origin `fetch` with `credentials: "same-origin"`, and never stores
-the passcode or session token in `localStorage`.
+(`#fan`, `#mai`, `#ledger`, `#bet`), same-origin `fetch` with `credentials: "same-origin"`, and
+never stores the passcode or session token in `localStorage`.
 
 ### Tests
 
@@ -150,8 +152,8 @@ pnpm test:web
 Integration tests use `TEST_DATABASE_URL`, defaulting to
 `postgres://tally:test@127.0.0.1:5433/tally_test`. The database name must end with `_test`; the test
 helper refuses to run otherwise, so a shell that loaded a production `DATABASE_URL` cannot make
-`pnpm test` truncate production tables. Tests truncate `settlements`, `games`, and `players` before
-each test. `LOG_LEVEL=silent` is set by the Vitest config.
+`pnpm test` truncate production tables. Tests truncate `bet_legs`, `bets`, `settlements`, `games`,
+and `players` before each test. `LOG_LEVEL=silent` is set by the Vitest config.
 
 When the Docker debug stack already owns `127.0.0.1:5433`, create a separate `tally_test` database in
 that PostgreSQL instance and point `TEST_DATABASE_URL` at it with the same credentials as `.env`:
@@ -165,6 +167,18 @@ TEST_DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5433/t
 
 The frontend tests are pure-logic Vitest tests (no browser): scoring formula, 踢半, 找數 zero-sum,
 特別賞罰, 飯錢, money formatting, Hong Kong date grouping, reducer/undo, and localStorage validation.
+
+Betting-ledger tests:
+
+```
+frontend/tests/bet-profit.test.ts
+frontend/tests/bet-format.test.ts
+frontend/tests/bet-form.test.ts
+tests/unit/bets-profit.test.ts
+tests/unit/bets-schemas.test.ts
+tests/integration/bets-crud.test.ts
+tests/integration/bets-stats.test.ts
+```
 
 ### Docker locally
 
@@ -252,6 +266,12 @@ Messages may be Traditional Chinese; **codes are the contract**.
 | `GET` | `/api/players` | yes | `{ players: [{ id, name }] }`, name asc |
 | `GET` | `/api/stats?player=&year=` | yes | Full-dataset player stats |
 | `GET` | `/api/ranking` | yes | Full-dataset ranking |
+| `GET` | `/api/bets?limit=&cursor=&status=` | yes | Bet list, newest first, keyset pagination |
+| `POST` | `/api/bets` | yes | Create one bet + 1–8 legs |
+| `PATCH` | `/api/bets/:id` | yes | Update date/stake/result/legs |
+| `DELETE` | `/api/bets/:id` | yes | Delete bet; legs cascade |
+| `GET` | `/api/bets/overview` | yes | Today/month/pending summary |
+| `GET` | `/api/bets/stats?period=` | yes | month/year/all betting stats |
 
 ### Auth
 
@@ -373,7 +393,7 @@ long immutable cache; `/api/*` uses `no-store`. Unknown `/api/*` returns a JSON 
 
 ## Phase B frontend
 
-The frontend is a mobile-first React PWA for four friends scoring at a table. It has three workflows:
+The frontend is a mobile-first React PWA for four friends scoring at a table. It has three mahjong workflows:
 
 - **番數記錄** (`#fan`) — 3 columns × 7 rows, row-major; the formula is
   `ceil(Σ r_i · 1.5^(n-1-i))` over non-null cells, top to bottom; 踢半 and 找數 per column.
@@ -387,6 +407,17 @@ at night”**: deep ink-green felt, warm ivory type, cinnabar seal accent, jade/
 and a tally-mark identity. Layer A is `taste-skill` (density, anti-slop discipline); Layer B is
 `supabase` (border-defined dark surfaces, translucent layering, pill primary CTA). No external fonts,
 CDNs, logos, or brand copy are used.
+
+### 賭球（Betting ledger）
+
+`#bet` is a separate shell from the mahjong UI. The mahjong header has a compact `賭球` switch; the
+betting header switches back to `麻雀`. It stores one row per bet slip in `bets` plus 1–8
+`bet_legs`; a single bet has one leg, a parlay has 2–8. The slip-level result is one of
+`pending/win/half_win/push/half_loss/loss`; `total_odds` and `profit` are calculated on write and
+stored. Pending bets are excluded from profit/ROI/win-rate and shown as pending stake.
+
+The visual contract is [`frontend/BET-DESIGN.md`](frontend/BET-DESIGN.md). The betting UI does not
+use mahjong components, tokens, or `GameProvider`.
 
 ### Auth and state
 
