@@ -104,6 +104,51 @@ export interface BetPayload {
   readonly legs: BetLegPayload[];
 }
 
+export interface HkjcImportRow {
+  readonly externalId: string;
+  readonly date: string;
+  readonly time: string;
+  readonly stake: number;
+  readonly payout: number;
+  readonly result: BetResult;
+  readonly legs: BetLegPayload[];
+  readonly betType: string;
+  readonly detail: string;
+  readonly warnings: string[];
+}
+
+export interface HkjcParseResult {
+  readonly rows: HkjcImportRow[];
+  readonly warnings: string[];
+}
+
+export type BetImportStatus = 'new' | 'duplicate' | 'imported';
+
+export interface BetImportItemResult {
+  readonly externalId: string;
+  readonly status: BetImportStatus;
+}
+
+export interface BetImportResponse {
+  readonly dryRun: boolean;
+  readonly imported: number;
+  readonly skipped: number;
+  readonly items: BetImportItemResult[];
+}
+
+export interface BetImportBet {
+  readonly externalId: string;
+  readonly date: string;
+  readonly stake: number;
+  readonly result: BetResult;
+  readonly legs: BetLegPayload[];
+}
+
+export interface BetImportPayload {
+  readonly dryRun: boolean;
+  readonly bets: BetImportBet[];
+}
+
 export interface BetDraftLeg {
   readonly match: string;
   readonly market: BetMarket;

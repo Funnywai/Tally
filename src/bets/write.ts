@@ -2,13 +2,21 @@ import type { PoolClient } from 'pg';
 import type { Db } from '../db.js';
 import { computeProfit, computeTotalOdds, round2 } from './profit.js';
 import { getBet, loadBetLegs } from './read.js';
-import type { BetItem, BetLegInput, BetResult } from './types.js';
+import type {
+  BetImportItem,
+  BetImportItemResult,
+  BetImportResponse,
+  BetItem,
+  BetLegInput,
+  BetResult,
+} from './types.js';
 
 export interface CreateBetData {
   readonly date: string;
   readonly stake: number;
   readonly result: BetResult;
   readonly legs: readonly BetLegInput[];
+  readonly externalId?: string | null;
 }
 
 export interface UpdateBetData {
@@ -32,26 +40,76 @@ async function insertLegs(
   }
 }
 
+async function insertBet(client: PoolClient, data: CreateBetData): Promise<string | null> {
+  const totalOdds = computeTotalOdds(data.legs);
+  const profit = computeProfit(data.stake, totalOdds, data.result);
+  const inserted = await client.query<{ id: string }>(
+    `insert into bets (bet_date, stake, total_odds, result, profit, external_id)
+     values ($1, $2, $3, $4, $5, $6)
+     on conflict do nothing
+     returning id`,
+    [data.date, round2(data.stake), totalOdds, data.result, profit, data.externalId ?? null],
+  );
+  const id = inserted.rows[0]?.id;
+  if (id === undefined) {
+    return null;
+  }
+  await insertLegs(client, id, data.legs);
+  return id;
+}
+
 export async function createBet(db: Db, data: CreateBetData): Promise<BetItem> {
   return db.withTransaction(async (client) => {
-    const totalOdds = computeTotalOdds(data.legs);
-    const profit = computeProfit(data.stake, totalOdds, data.result);
-    const inserted = await client.query<{ id: string }>(
-      `insert into bets (bet_date, stake, total_odds, result, profit)
-       values ($1, $2, $3, $4, $5)
-       returning id`,
-      [data.date, round2(data.stake), totalOdds, data.result, profit],
-    );
-    const id = inserted.rows[0]?.id;
-    if (id === undefined) {
+    const id = await insertBet(client, data);
+    if (id === null) {
       throw new Error('Bet insert returned no row');
     }
-    await insertLegs(client, id, data.legs);
     const item = await getBet(client, id);
     if (item === null) {
       throw new Error('Created bet could not be read back');
     }
     return item;
+  });
+}
+
+export async function importBets(
+  db: Db,
+  items: readonly BetImportItem[],
+  dryRun: boolean,
+): Promise<BetImportResponse> {
+  return db.withTransaction(async (client) => {
+    const existing = await client.query<{ external_id: string }>(
+      'select external_id from bets where external_id = any($1::text[])',
+      [items.map((item) => item.externalId)],
+    );
+    const existingIds = new Set(existing.rows.map((row) => row.external_id));
+
+    const results: BetImportItemResult[] = [];
+    let imported = 0;
+    let skipped = 0;
+
+    for (const item of items) {
+      if (existingIds.has(item.externalId)) {
+        results.push({ externalId: item.externalId, status: 'duplicate' });
+        skipped += 1;
+        continue;
+      }
+      if (dryRun) {
+        results.push({ externalId: item.externalId, status: 'new' });
+        continue;
+      }
+
+      const id = await insertBet(client, item);
+      if (id === null) {
+        results.push({ externalId: item.externalId, status: 'duplicate' });
+        skipped += 1;
+        continue;
+      }
+      results.push({ externalId: item.externalId, status: 'imported' });
+      imported += 1;
+    }
+
+    return { dryRun, imported, skipped, items: results };
   });
 }
 

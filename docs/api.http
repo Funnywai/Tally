@@ -114,6 +114,30 @@ GET {{baseUrl}}/api/bets/stats?period=month
 ### Delete a bet (legs cascade)
 DELETE {{baseUrl}}/api/bets/{{betId}}
 
+### Import bets from the HKJC 8-day statement (dryRun checks duplicates; a non-dry-run imports)
+POST {{baseUrl}}/api/bets/import
+Content-Type: application/json
+
+{
+  "dryRun": true,
+  "bets": [
+    {
+      "externalId": "hkjc:2026-10-26:TEST0000001",
+      "date": "2026-10-26",
+      "stake": 100,
+      "result": "pending",
+      "legs": [
+        {
+          "match": "主隊 vs 客隊",
+          "market": "handicap",
+          "selection": "主隊 -0.5",
+          "odds": 1.95
+        }
+      ]
+    }
+  ]
+}
+
 ### Logout (JSON content type is required to block cross-site form logout)
 POST {{baseUrl}}/api/auth/logout
 Content-Type: application/json

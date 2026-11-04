@@ -14,6 +14,28 @@ export interface BetLeg extends BetLegInput {
   readonly position: number;
 }
 
+export type BetImportStatus = 'new' | 'duplicate' | 'imported';
+
+export interface BetImportItem {
+  readonly externalId: string;
+  readonly date: string;
+  readonly stake: number;
+  readonly result: BetResult;
+  readonly legs: readonly BetLegInput[];
+}
+
+export interface BetImportItemResult {
+  readonly externalId: string;
+  readonly status: BetImportStatus;
+}
+
+export interface BetImportResponse {
+  readonly dryRun: boolean;
+  readonly imported: number;
+  readonly skipped: number;
+  readonly items: readonly BetImportItemResult[];
+}
+
 export interface BetItem {
   readonly id: string;
   readonly date: string;

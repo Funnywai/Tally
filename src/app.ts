@@ -32,11 +32,20 @@ export function createApp(deps: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
 
+  const jsonParser = express.json({ limit: '32kb' });
+  const importJsonParser = express.json({ limit: '256kb' });
+
   app.use(securityHeaders);
   app.use(apiNoStore);
   app.use(requestLogger(deps.logger));
   app.use(jsonOnly);
-  app.use(express.json({ limit: '32kb' }));
+  app.use((req, res, next) => {
+    if (req.method === 'POST' && req.path === '/api/bets/import') {
+      importJsonParser(req, res, next);
+      return;
+    }
+    jsonParser(req, res, next);
+  });
 
   app.use('/api/health', createHealthRouter(deps.db));
   app.use('/api/auth', createAuthRouter(deps.config));

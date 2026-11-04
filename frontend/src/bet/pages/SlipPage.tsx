@@ -5,8 +5,10 @@ import { createBet, deleteBet, fetchBetOverview, fetchBets, updateBet } from '..
 import { BetCard } from '../components/BetCard';
 import { BetConfirmDialog } from '../components/BetConfirmDialog';
 import { BetForm } from '../components/BetForm';
+import { BetUploadIcon } from '../components/BetIcons';
 import { BetSummary } from '../components/BetSummary';
 import type { BetToastKind } from '../components/BetToast';
+import { HkjcImportSheet } from '../components/HkjcImportSheet';
 import { draftFromBet, emptyDraft } from '../lib/form';
 import type { BetItem, BetOverview, BetPayload, BetStatusFilter } from '../types';
 
@@ -38,6 +40,7 @@ export function SlipPage({
   const [deleting, setDeleting] = useState<BetItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const loadSeq = useRef(0);
   const overviewSeq = useRef(0);
@@ -181,16 +184,26 @@ export function SlipPage({
         onRetry={() => void loadOverview()}
       />
 
-      <button
-        type="button"
-        className="bet-cta"
-        onClick={() => {
-          setSaveError(null);
-          setForm({ mode: 'create' });
-        }}
-      >
-        新增注單
-      </button>
+      <div className="bet-cta-row">
+        <button
+          type="button"
+          className="bet-cta"
+          onClick={() => {
+            setSaveError(null);
+            setForm({ mode: 'create' });
+          }}
+        >
+          新增注單
+        </button>
+        <button
+          type="button"
+          className="bet-button bet-button--outline bet-import-trigger"
+          onClick={() => setImportOpen(true)}
+        >
+          <BetUploadIcon size={16} />
+          匯入 HKJC
+        </button>
+      </div>
 
       <fieldset className="bet-filters" aria-label="注單篩選">
         {FILTERS.map((filter) => (
@@ -317,6 +330,16 @@ export function SlipPage({
           }
         />
       )}
+
+      {importOpen ? (
+        <HkjcImportSheet
+          onClose={() => setImportOpen(false)}
+          onImported={() => {
+            void Promise.all([loadFirst(false), loadOverview()]);
+          }}
+          onNotify={onNotify}
+        />
+      ) : null}
 
       <BetConfirmDialog
         open={deleting !== null}

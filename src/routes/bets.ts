@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { decodeBetCursor } from '../bets/cursor.js';
 import { listBets } from '../bets/read.js';
 import { getBetStats, getOverview } from '../bets/stats.js';
-import { createBet, deleteBet, updateBet } from '../bets/write.js';
+import { createBet, deleteBet, importBets, updateBet } from '../bets/write.js';
 import type { Db } from '../db.js';
 import { AppError } from '../errors.js';
 import {
@@ -10,6 +10,7 @@ import {
   betStatsQuerySchema,
   createBetSchema,
   firstIssueMessage,
+  importBetsSchema,
   listBetsQuerySchema,
   patchBetSchema,
 } from '../schemas.js';
@@ -57,6 +58,15 @@ export function createBetsRouter(db: Db): Router {
       legs: parsed.data.legs,
     });
     res.status(201).json(item);
+  });
+
+  router.post('/import', async (req, res) => {
+    const parsed = importBetsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION', firstIssueMessage(parsed.error));
+    }
+
+    res.json(await importBets(db, parsed.data.bets, parsed.data.dryRun));
   });
 
   router.patch('/:id', async (req, res) => {
