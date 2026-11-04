@@ -66,6 +66,15 @@ export function BetPlusIcon({ size = 16, className }: BetIconProps) {
   );
 }
 
+export function BetUploadIcon({ size = 16, className }: BetIconProps) {
+  return (
+    <svg {...base(size, className)}>
+      <path d="M12 16V4M7 9l5-5 5 5" />
+      <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
+    </svg>
+  );
+}
+
 export function BetXIcon({ size = 20, className }: BetIconProps) {
   return (
     <svg {...base(size, className)}>

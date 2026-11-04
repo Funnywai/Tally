@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { jsonInit, requestJson, requestVoid } from '../lib/http';
 import type {
+  BetImportPayload,
+  BetImportResponse,
   BetItem,
   BetListResponse,
   BetOverview,
@@ -101,6 +103,18 @@ const statsSchema = z.object({
   biggestLoss: biggestSchema.nullable(),
 });
 
+const betImportItemResultSchema = z.object({
+  externalId: z.string(),
+  status: z.enum(['new', 'duplicate', 'imported']),
+});
+
+const betImportResponseSchema = z.object({
+  dryRun: z.boolean(),
+  imported: z.number(),
+  skipped: z.number(),
+  items: z.array(betImportItemResultSchema),
+});
+
 export async function fetchBets(options: {
   readonly status: BetStatusFilter;
   readonly cursor?: string;
@@ -131,4 +145,8 @@ export async function deleteBet(id: string): Promise<void> {
 export async function fetchBetStats(period: BetPeriod): Promise<BetStats> {
   const params = new URLSearchParams({ period });
   return requestJson(`/api/bets/stats?${params.toString()}`, {}, statsSchema);
+}
+
+export async function importBets(payload: BetImportPayload): Promise<BetImportResponse> {
+  return requestJson('/api/bets/import', jsonInit('POST', payload), betImportResponseSchema);
 }
