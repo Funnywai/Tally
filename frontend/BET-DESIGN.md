@@ -64,6 +64,7 @@ Contrast rules: text ≥ 4.5:1 on its surface; UI boundaries ≥ 3:1; never rely
 - **Filters**: 全部 / 待結算 / 已結算; selected uses volt wash + border.
 - **Bet card**: type badge, record time, result badge; numbered legs `01/02`; dotted separators; stake / total odds / profit footer; pending card has a `結算` text action.
 - **Sheet**: full-screen for the bet form; bottom sheet for confirmation. Native `<dialog>` + focus trap + Escape.
+- **HKJC import sheet**: full-screen sheet with a file picker and local-only privacy note; summary counts for importable, duplicate, and warning rows; preview cards with an editable result select and a `已存在` duplicate badge; `未派彩全部設為輸` bulk action; sticky footer with cancel/import.
 - **Form**: date, leg fieldsets, market chips, result chips, total-odds readout, profit preview, sticky footer.
 - **Stats**: period segmented control, hero P/L, 2×2 KPI, type rows, market diverging bars, 6-month CSS column chart, biggest win/loss cards.
 - **States**: `.bet-empty`, `.bet-inline-error`, `.bet-skeleton*`, `.bet-toast*`, `.bet-banner`.

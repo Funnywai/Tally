@@ -174,10 +174,12 @@ Betting-ledger tests:
 frontend/tests/bet-profit.test.ts
 frontend/tests/bet-format.test.ts
 frontend/tests/bet-form.test.ts
+frontend/tests/bet-hkjc-import.test.ts
 tests/unit/bets-profit.test.ts
 tests/unit/bets-schemas.test.ts
 tests/integration/bets-crud.test.ts
 tests/integration/bets-stats.test.ts
+tests/integration/bets-import.test.ts
 ```
 
 ### Docker locally
@@ -268,6 +270,7 @@ Messages may be Traditional Chinese; **codes are the contract**.
 | `GET` | `/api/ranking` | yes | Full-dataset ranking |
 | `GET` | `/api/bets?limit=&cursor=&status=` | yes | Bet list, newest first, keyset pagination |
 | `POST` | `/api/bets` | yes | Create one bet + 1–8 legs |
+| `POST` | `/api/bets/import` | yes | Import 1-200 bets; `dryRun` checks duplicates, otherwise dedupes by `externalId` |
 | `PATCH` | `/api/bets/:id` | yes | Update date/stake/result/legs |
 | `DELETE` | `/api/bets/:id` | yes | Delete bet; legs cascade |
 | `GET` | `/api/bets/overview` | yes | Today/month/pending summary |
@@ -418,6 +421,19 @@ stored. Pending bets are excluded from profit/ROI/win-rate and shown as pending 
 
 The visual contract is [`frontend/BET-DESIGN.md`](frontend/BET-DESIGN.md). The betting UI does not
 use mahjong components, tokens, or `GameProvider`.
+
+#### HKJC 8-day import
+
+On the 賭球 page, click `匯入 HKJC` and choose `acctstmt.html` from the HKJC 8-day account statement.
+
+- The file is parsed locally in the browser. The raw HTML is never uploaded; only the parsed JSON is posted.
+- The preview lets you edit each row's result. A payout of 0 defaults to pending (待定, shown as
+  `未開`), and the `未派彩全部設為輸` bulk action marks every no-payout row as a loss.
+- Duplicate `externalId`s are checked with a dry run and skipped. The server import is idempotent, so
+  reruns are safe.
+- Limits: 8 days per HKJC export, 200 rows per import, and a 256 KB JSON body limit for the import
+  route (other API routes stay at 32 KB).
+- Do not commit `docs/hkjc_export/`; it contains personal data and is gitignored.
 
 ### Auth and state
 
