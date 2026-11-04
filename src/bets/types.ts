@@ -1,4 +1,4 @@
-export type BetResult = 'pending' | 'win' | 'half_win' | 'push' | 'half_loss' | 'loss';
+export type BetResult = 'pending' | 'win' | 'half_win' | 'push' | 'half_loss' | 'loss' | 'cash_out';
 export type BetMarket = '1x2' | 'handicap' | 'totals' | 'other';
 export type BetStatusFilter = 'all' | 'pending' | 'settled';
 export type BetPeriod = 'month' | 'year' | 'all';
@@ -22,6 +22,7 @@ export interface BetImportItem {
   readonly stake: number;
   readonly result: BetResult;
   readonly legs: readonly BetLegInput[];
+  readonly profitOverride?: number | null | undefined;
 }
 
 export interface BetImportItemResult {

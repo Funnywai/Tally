@@ -1,6 +1,7 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { hkToday } from '../../src/time.js';
 import { closeTestDb, createTestApp, getTestDb, resetDb } from '../helpers/app.js';
 import { singleLeg } from '../helpers/bets.js';
 import { login } from '../helpers/records.js';
@@ -303,5 +304,317 @@ describe('POST /api/bets/import', () => {
       [created.body.id],
     );
     expect(row.rows[0]?.external_id).toBeNull();
+  });
+});
+
+describe('cash_out import', () => {
+  async function importCashOut(
+    app: Express,
+    cookie: string,
+    externalId: string,
+    overrides: Record<string, unknown> = {},
+  ): Promise<request.Response> {
+    return postImport(app, cookie, {
+      bets: [
+        importItem(externalId, {
+          date: hkToday(),
+          stake: 10,
+          result: 'cash_out',
+          profitOverride: 7.3,
+          legs: [singleLeg({ odds: 9.24 })],
+          ...overrides,
+        }),
+      ],
+    });
+  }
+
+  async function betByExternalId(externalId: string): Promise<{
+    id: string;
+    result: string;
+    profit: string | null;
+    total_odds: string;
+  } | null> {
+    const db = await getTestDb();
+    const result = await db.pool.query<{
+      id: string;
+      result: string;
+      profit: string | null;
+      total_odds: string;
+    }>(
+      `select id, result, profit::text, total_odds::text
+         from bets
+        where external_id = $1`,
+      [externalId],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  it('imports a cash-out win as actual profit and excludes it from wins and biggest win', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+
+    const imported = await importCashOut(app, cookie, 'hkjc-cashout-win');
+    expect(imported.status).toBe(200);
+    expect(imported.body.imported).toBe(1);
+
+    const list = await request(app).get('/api/bets').set('Cookie', cookie);
+    expect(list.status).toBe(200);
+    expect(list.body.items[0]).toMatchObject({
+      result: 'cash_out',
+      stake: 10,
+      totalOdds: 9.24,
+      profit: 7.3,
+    });
+
+    const stats = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    expect(stats.status).toBe(200);
+    expect(stats.body.totals).toEqual({
+      settledStake: 10,
+      profit: 7.3,
+      roi: 73,
+      settledBets: 1,
+      wins: 0,
+      winRate: null,
+      avgOdds: 9.24,
+      pendingCount: 0,
+      pendingStake: 0,
+    });
+    expect(stats.body.byType).toEqual([
+      { type: 'single', bets: 1, stake: 10, profit: 7.3, roi: 73 },
+      { type: 'parlay', bets: 0, stake: 0, profit: 0, roi: null },
+    ]);
+    expect(stats.body.byMarket).toEqual([
+      { market: 'handicap', bets: 1, stake: 10, profit: 7.3, roi: 73 },
+    ]);
+    expect(stats.body.monthly.at(-1)).toEqual({
+      month: hkToday().slice(0, 7),
+      profit: 7.3,
+    });
+    expect(stats.body.biggestWin).toBeNull();
+    expect(stats.body.biggestLoss).toBeNull();
+
+    const overview = await request(app).get('/api/bets/overview').set('Cookie', cookie);
+    expect(overview.status).toBe(200);
+    expect(overview.body.today).toEqual({
+      profit: 7.3,
+      settledStake: 10,
+      settledBets: 1,
+      pendingBets: 0,
+    });
+    expect(overview.body.month).toEqual({
+      profit: 7.3,
+      settledStake: 10,
+      settledBets: 1,
+      pendingBets: 0,
+    });
+
+    expect(await betByExternalId('hkjc-cashout-win')).toMatchObject({
+      result: 'cash_out',
+      profit: '7.30',
+      total_odds: '9.24',
+    });
+  });
+
+  it('imports a cash-out loss as actual profit and excludes it from biggest loss', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+
+    const imported = await importCashOut(app, cookie, 'hkjc-cashout-loss', {
+      profitOverride: -9.9,
+      legs: [singleLeg({ odds: 2.44 })],
+    });
+    expect(imported.status).toBe(200);
+    expect(imported.body.imported).toBe(1);
+
+    const list = await request(app).get('/api/bets').set('Cookie', cookie);
+    expect(list.body.items[0]).toMatchObject({
+      result: 'cash_out',
+      stake: 10,
+      totalOdds: 2.44,
+      profit: -9.9,
+    });
+
+    const stats = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    expect(stats.body.totals).toEqual({
+      settledStake: 10,
+      profit: -9.9,
+      roi: -99,
+      settledBets: 1,
+      wins: 0,
+      winRate: null,
+      avgOdds: 2.44,
+      pendingCount: 0,
+      pendingStake: 0,
+    });
+    expect(stats.body.biggestWin).toBeNull();
+    expect(stats.body.biggestLoss).toBeNull();
+
+    const overview = await request(app).get('/api/bets/overview').set('Cookie', cookie);
+    expect(overview.body.today.profit).toBe(-9.9);
+    expect(overview.body.month.profit).toBe(-9.9);
+
+    expect(await betByExternalId('hkjc-cashout-loss')).toMatchObject({
+      result: 'cash_out',
+      profit: '-9.90',
+      total_odds: '2.44',
+    });
+  });
+
+  it('rejects invalid override combinations', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+
+    const invalidItems = [
+      importItem('hkjc-pending-override', { result: 'pending', profitOverride: 7.3 }),
+      importItem('hkjc-win-override', { result: 'win', profitOverride: 7.3 }),
+      importItem('hkjc-cashout-missing', { result: 'cash_out' }),
+      importItem('hkjc-cashout-null', { result: 'cash_out', profitOverride: null }),
+    ];
+
+    for (const item of invalidItems) {
+      const response = await postImport(app, cookie, { bets: [item] });
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION');
+    }
+
+    expect(await countBets()).toBe(0);
+  });
+
+  it('keeps the formula for normal imports without an override', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+
+    const imported = await postImport(app, cookie, {
+      bets: [
+        importItem('hkjc-normal-formula', {
+          date: hkToday(),
+          stake: 100,
+          result: 'win',
+          legs: [singleLeg({ odds: 2 })],
+        }),
+      ],
+    });
+    expect(imported.status).toBe(200);
+    expect(imported.body.imported).toBe(1);
+
+    const list = await request(app).get('/api/bets').set('Cookie', cookie);
+    expect(list.body.items[0].profit).toBe(100);
+
+    const stats = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    expect(stats.body.totals.profit).toBe(100);
+    expect(stats.body.totals.wins).toBe(1);
+
+    expect(await betByExternalId('hkjc-normal-formula')).toMatchObject({
+      result: 'win',
+      profit: '100.00',
+      total_odds: '2.00',
+    });
+  });
+
+  it('rejects cash_out on normal create and patch endpoints', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+
+    const createdNow = await request(app)
+      .post('/api/bets')
+      .set('Cookie', cookie)
+      .send(betFields({ result: 'cash_out', stake: 10, profitOverride: 7.3 }));
+    expect(createdNow.status).toBe(400);
+    expect(createdNow.body.error.code).toBe('VALIDATION');
+
+    const normal = await request(app)
+      .post('/api/bets')
+      .set('Cookie', cookie)
+      .send(betFields({ result: 'win', stake: 10, legs: [singleLeg({ odds: 2 })] }));
+    expect(normal.status).toBe(201);
+
+    const patched = await request(app)
+      .patch(`/api/bets/${normal.body.id}`)
+      .set('Cookie', cookie)
+      .send({ result: 'cash_out' });
+    expect(patched.status).toBe(400);
+    expect(patched.body.error.code).toBe('VALIDATION');
+
+    const db = await getTestDb();
+    const row = await db.pool.query<{ result: string; profit: string }>(
+      'select result, profit::text from bets where id = $1',
+      [normal.body.id],
+    );
+    expect(row.rows[0]).toEqual({ result: 'win', profit: '10.00' });
+  });
+
+  it('preserves actual profit on a date-only patch of a cash-out bet', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    await importCashOut(app, cookie, 'hkjc-cashout-date-patch');
+    const before = await betByExternalId('hkjc-cashout-date-patch');
+    expect(before).not.toBeNull();
+
+    const patched = await request(app)
+      .patch(`/api/bets/${before?.id ?? ''}`)
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-30' });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body).toMatchObject({
+      date: '2026-10-30',
+      result: 'cash_out',
+      stake: 10,
+      totalOdds: 9.24,
+      profit: 7.3,
+    });
+    expect(await betByExternalId('hkjc-cashout-date-patch')).toMatchObject({
+      profit: '7.30',
+      total_odds: '9.24',
+    });
+  });
+
+  it('rejects stake, result, and leg patches on a cash-out bet', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    await importCashOut(app, cookie, 'hkjc-cashout-locked');
+    const before = await betByExternalId('hkjc-cashout-locked');
+    expect(before).not.toBeNull();
+
+    const patches = [
+      { stake: 20 },
+      { result: 'win' },
+      { legs: [singleLeg({ odds: 2 })] },
+      { date: '2026-10-31', stake: 20 },
+    ];
+
+    for (const patch of patches) {
+      const response = await request(app)
+        .patch(`/api/bets/${before?.id ?? ''}`)
+        .set('Cookie', cookie)
+        .send(patch);
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION');
+    }
+
+    expect(await betByExternalId('hkjc-cashout-locked')).toMatchObject({
+      result: 'cash_out',
+      profit: '7.30',
+      total_odds: '9.24',
+    });
+  });
+
+  it('accepts cash_out in the bets result constraint', async () => {
+    const db = await getTestDb();
+
+    const inserted = await db.pool.query<{ result: string }>(
+      `insert into bets (bet_date, stake, total_odds, result, profit)
+       values (current_date, 10, 2, 'cash_out', 1.5)
+       returning result`,
+    );
+    expect(inserted.rows[0]?.result).toBe('cash_out');
+
+    const constraint = await db.pool.query<{ definition: string }>(
+      `select pg_get_constraintdef(oid) as definition
+         from pg_constraint
+        where conname = 'bets_result_check'
+          and conrelid = 'bets'::regclass`,
+    );
+    expect(constraint.rows[0]?.definition).toContain("'cash_out'");
   });
 });
