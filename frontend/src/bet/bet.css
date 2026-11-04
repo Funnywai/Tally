@@ -15,6 +15,7 @@
   --bet-loss: #ff6b6b;
   --bet-pending: #ffc857;
   --bet-push: #9fb0bf;
+  --bet-cash-out: #ffb454;
   --bet-scrim: rgba(2, 6, 12, 0.78);
   --bet-glow: rgba(216, 255, 79, 0.10);
   --bet-pitch-line: rgba(243, 247, 242, 0.045);
@@ -765,6 +766,12 @@ body.bet-sheet-open {
   background: rgba(159, 176, 191, 0.08);
 }
 
+.bet-result--cash_out {
+  color: var(--bet-cash-out);
+  background: rgba(255, 180, 84, 0.1);
+  border-style: dashed;
+}
+
 .bet-legs {
   display: flex;
   flex-direction: column;
@@ -862,6 +869,29 @@ body.bet-sheet-open {
 
 .bet-card--pending {
   padding-bottom: 44px;
+}
+
+.bet-card--cash_out {
+  padding-bottom: 44px;
+}
+
+.bet-card__delete {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--bet-muted);
+  background: transparent;
+  border: 0;
+}
+
+.bet-card__delete:hover {
+  color: var(--bet-loss);
+  background: var(--bet-raised);
 }
 
 .bet-empty__description {
@@ -1822,6 +1852,31 @@ body.bet-sheet-open {
 
 .bet-import-card__select:disabled {
   opacity: 0.55;
+}
+
+.bet-import-card__cash-out {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bet-import-card__cash-out-profit {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bet-import-card__cash-out-profit.is-win {
+  color: var(--bet-win);
+}
+
+.bet-import-card__cash-out-profit.is-loss {
+  color: var(--bet-loss);
+}
+
+.bet-import-card__cash-out-profit.is-zero {
+  color: var(--bet-dim);
 }
 
 .bet-import-card__warnings {

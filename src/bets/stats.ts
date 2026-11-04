@@ -128,6 +128,7 @@ interface TotalsRow {
   readonly settled_stake: string;
   readonly profit: string;
   readonly settled_bets: number;
+  readonly normal_settled_bets: number;
   readonly wins: number;
   readonly avg_odds: string | null;
   readonly pending_count: number;
@@ -181,6 +182,7 @@ async function getBiggest(
          from bets b
         where ${where}
           and b.result <> 'pending'
+          and b.result <> 'cash_out'
      )
      select id,
             date,
@@ -216,7 +218,10 @@ export async function getBetStats(pool: Pool, period: BetPeriod): Promise<BetSta
            coalesce(sum(b.stake) filter (where b.result <> 'pending'), 0)::text as settled_stake,
            coalesce(sum(b.profit) filter (where b.result <> 'pending'), 0)::text as profit,
            count(*) filter (where b.result <> 'pending')::int as settled_bets,
-           count(*) filter (where b.result <> 'pending' and b.profit > 0)::int as wins,
+           count(*) filter (
+             where b.result <> 'pending' and b.result <> 'cash_out'
+           )::int as normal_settled_bets,
+           count(*) filter (where b.result in ('win', 'half_win'))::int as wins,
            avg(b.total_odds) filter (where b.result <> 'pending')::text as avg_odds,
            count(*) filter (where b.result = 'pending')::int as pending_count,
            coalesce(sum(b.stake) filter (where b.result = 'pending'), 0)::text as pending_stake
@@ -292,7 +297,7 @@ export async function getBetStats(pool: Pool, period: BetPeriod): Promise<BetSta
     roi: ratio(profit, settledStake),
     settledBets,
     wins,
-    winRate: ratio(wins, settledBets),
+    winRate: ratio(wins, totalsRow?.normal_settled_bets ?? 0),
     avgOdds:
       totalsRow?.avg_odds === null || totalsRow?.avg_odds === undefined
         ? null

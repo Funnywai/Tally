@@ -25,7 +25,11 @@ export function computeTotalOdds(legs: readonly Pick<BetLegInput, 'odds'>[]): nu
   return round2(product);
 }
 
-export function computeProfit(stake: number, totalOdds: number, result: BetResult): number | null {
+export function computeProfit(
+  stake: number,
+  totalOdds: number,
+  result: Exclude<BetResult, 'cash_out'>,
+): number | null {
   const s = round2(stake);
   const o = round2(totalOdds);
   switch (result) {

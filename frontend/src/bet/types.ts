@@ -1,4 +1,4 @@
-export type BetResult = 'pending' | 'win' | 'half_win' | 'push' | 'half_loss' | 'loss';
+export type BetResult = 'pending' | 'win' | 'half_win' | 'push' | 'half_loss' | 'loss' | 'cash_out';
 export type BetMarket = '1x2' | 'handicap' | 'totals' | 'other';
 export type BetStatusFilter = 'all' | 'pending' | 'settled';
 export type BetPeriod = 'month' | 'year' | 'all';
@@ -111,6 +111,7 @@ export interface HkjcImportRow {
   readonly stake: number;
   readonly payout: number;
   readonly result: BetResult;
+  readonly profitOverride: number | null;
   readonly legs: BetLegPayload[];
   readonly betType: string;
   readonly detail: string;
@@ -142,6 +143,7 @@ export interface BetImportBet {
   readonly stake: number;
   readonly result: BetResult;
   readonly legs: BetLegPayload[];
+  readonly profitOverride?: number | null;
 }
 
 export interface BetImportPayload {

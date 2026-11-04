@@ -1,6 +1,13 @@
 import { useId } from 'react';
 import { formatDateLong } from '../../lib/date';
-import { betTypeLabel, formatOdds, formatStake, marketLabel } from '../lib/format';
+import {
+  betTypeLabel,
+  formatBetMoney,
+  formatOdds,
+  formatStake,
+  marketLabel,
+  profitTone,
+} from '../lib/format';
 import type { BetImportStatus, BetResult, HkjcImportRow } from '../types';
 
 const RESULT_OPTIONS: readonly { readonly id: BetResult; readonly label: string }[] = [
@@ -32,6 +39,7 @@ export function HkjcImportRowCard({
   const checkboxId = useId();
   const resultId = useId();
   const duplicate = status === 'duplicate';
+  const isCashOut = row.result === 'cash_out';
   const className = [
     'bet-import-card',
     include ? '' : 'is-excluded',
@@ -83,27 +91,39 @@ export function HkjcImportRowCard({
         <span>派彩 {formatStake(row.payout)}</span>
       </div>
 
-      <label className="bet-import-card__result" htmlFor={resultId}>
-        <span className="bet-import-card__field-label">結果</span>
-        <select
-          id={resultId}
-          className="bet-import-card__select"
-          value={result}
-          disabled={duplicate}
-          onChange={(event) => {
-            const next = RESULT_OPTIONS.find((option) => option.id === event.target.value);
-            if (next !== undefined) {
-              onChangeResult(next.id);
-            }
-          }}
-        >
-          {RESULT_OPTIONS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {isCashOut ? (
+        <div className="bet-import-card__result">
+          <span className="bet-import-card__field-label">結果</span>
+          <span className="bet-import-card__cash-out">
+            <span className="bet-result bet-result--cash_out">派彩快</span>
+            <span className={`bet-import-card__cash-out-profit ${profitTone(row.profitOverride)}`}>
+              {formatBetMoney(row.profitOverride ?? row.payout - row.stake)}
+            </span>
+          </span>
+        </div>
+      ) : (
+        <label className="bet-import-card__result" htmlFor={resultId}>
+          <span className="bet-import-card__field-label">結果</span>
+          <select
+            id={resultId}
+            className="bet-import-card__select"
+            value={result}
+            disabled={duplicate}
+            onChange={(event) => {
+              const next = RESULT_OPTIONS.find((option) => option.id === event.target.value);
+              if (next !== undefined) {
+                onChangeResult(next.id);
+              }
+            }}
+          >
+            {RESULT_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {row.warnings.length === 0 ? null : (
         <ul className="bet-import-card__warnings">

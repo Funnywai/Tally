@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import type { Db } from '../db.js';
+import { AppError } from '../errors.js';
 import { computeProfit, computeTotalOdds, round2 } from './profit.js';
 import { getBet, loadBetLegs } from './read.js';
 import type {
@@ -17,6 +18,7 @@ export interface CreateBetData {
   readonly result: BetResult;
   readonly legs: readonly BetLegInput[];
   readonly externalId?: string | null;
+  readonly profitOverride?: number | null | undefined;
 }
 
 export interface UpdateBetData {
@@ -40,9 +42,19 @@ async function insertLegs(
   }
 }
 
+function resolveCashOutProfit(value: number | null | undefined): number {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    throw new AppError('VALIDATION', '派彩快注單需要提供實際盈虧');
+  }
+  return round2(value);
+}
+
 async function insertBet(client: PoolClient, data: CreateBetData): Promise<string | null> {
   const totalOdds = computeTotalOdds(data.legs);
-  const profit = computeProfit(data.stake, totalOdds, data.result);
+  const profit =
+    data.result === 'cash_out'
+      ? resolveCashOutProfit(data.profitOverride)
+      : computeProfit(data.stake, totalOdds, data.result);
   const inserted = await client.query<{ id: string }>(
     `insert into bets (bet_date, stake, total_odds, result, profit, external_id)
      values ($1, $2, $3, $4, $5, $6)
@@ -118,9 +130,15 @@ export async function updateBet(db: Db, id: string, data: UpdateBetData): Promis
     const current = await client.query<{
       bet_date: string;
       stake: string;
+      total_odds: string;
       result: BetResult;
+      profit: string | null;
     }>(
-      `select to_char(bet_date, 'YYYY-MM-DD') as bet_date, stake::text, result
+      `select to_char(bet_date, 'YYYY-MM-DD') as bet_date,
+              stake::text,
+              total_odds::text,
+              result,
+              profit::text
          from bets
         where id = $1
         for update`,
@@ -129,6 +147,25 @@ export async function updateBet(db: Db, id: string, data: UpdateBetData): Promis
     const row = current.rows[0];
     if (row === undefined) {
       return null;
+    }
+
+    if (row.result === 'cash_out') {
+      if (data.stake !== undefined || data.result !== undefined || data.legs !== undefined) {
+        throw new AppError('VALIDATION', '派彩快注單不可修改注碼、結果或注項');
+      }
+      await client.query(
+        `update bets
+            set bet_date = $2,
+                updated_at = now()
+          where id = $1`,
+        [id, data.date ?? row.bet_date],
+      );
+
+      const item = await getBet(client, id);
+      if (item === null) {
+        throw new Error('Updated bet could not be read back');
+      }
+      return item;
     }
 
     const legs =
@@ -141,6 +178,9 @@ export async function updateBet(db: Db, id: string, data: UpdateBetData): Promis
       }));
     const stake = data.stake ?? Number(row.stake);
     const result = data.result ?? row.result;
+    if (result === 'cash_out') {
+      throw new AppError('VALIDATION', '只可透過匯入建立派彩快注單');
+    }
     const totalOdds = computeTotalOdds(legs);
     const profit = computeProfit(stake, totalOdds, result);
 

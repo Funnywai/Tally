@@ -9,21 +9,34 @@ import {
   resultLabel,
 } from '../lib/format';
 import type { BetItem } from '../types';
+import { BetTrashIcon } from './BetIcons';
 
 export function BetCard({
   bet,
   onEdit,
   onSettle,
+  onDelete,
 }: {
   readonly bet: BetItem;
   readonly onEdit: () => void;
   readonly onSettle: () => void;
+  readonly onDelete?: (() => void) | undefined;
 }) {
   const time = formatTimeHK(new Date(bet.recordedAt));
+  const isCashOut = bet.result === 'cash_out';
 
   return (
-    <article className={`bet-card ${bet.result === 'pending' ? 'bet-card--pending' : ''}`}>
-      <button type="button" className="bet-card__main" onClick={onEdit}>
+    <article
+      className={`bet-card ${bet.result === 'pending' ? 'bet-card--pending' : ''} ${
+        isCashOut ? 'bet-card--cash_out' : ''
+      }`}
+    >
+      <button
+        type="button"
+        className="bet-card__main"
+        onClick={onEdit}
+        aria-label={isCashOut ? '派彩快注單' : '編輯注單'}
+      >
         <span className="bet-card__top">
           <span className="bet-type">{betTypeLabel(bet.legs.length)}</span>
           <span className="bet-card__time">{time}</span>
@@ -57,6 +70,17 @@ export function BetCard({
       {bet.result === 'pending' ? (
         <button type="button" className="bet-card__settle" onClick={onSettle}>
           結算
+        </button>
+      ) : null}
+
+      {isCashOut && onDelete !== undefined ? (
+        <button
+          type="button"
+          className="bet-card__delete"
+          onClick={onDelete}
+          aria-label="刪除派彩快注單"
+        >
+          <BetTrashIcon size={15} />
         </button>
       ) : null}
     </article>

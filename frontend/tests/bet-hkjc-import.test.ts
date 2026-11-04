@@ -35,6 +35,7 @@ describe('parseHkjcStatementHtml singles', () => {
     expect(parsed.stake).toBe(10);
     expect(parsed.payout).toBe(0);
     expect(parsed.result).toBe('pending');
+    expect(parsed.profitOverride).toBeNull();
     expect(parsed.betType).toBe('入球大細');
     expect(parsed.detail).toContain('FB1001');
     expect(parsed.legs).toEqual([
@@ -62,6 +63,7 @@ describe('parseHkjcStatementHtml singles', () => {
 
     const parsed = firstRow(result);
     expect(parsed.result).toBe('win');
+    expect(parsed.profitOverride).toBeNull();
     expect(parsed.payout).toBe(19.3);
     expect(parsed.legs).toEqual([
       { match: '北港聯 vs 南灣城', market: '1x2', selection: '主', odds: 1.93 },
@@ -131,11 +133,51 @@ describe('parseHkjcStatementHtml result inference', () => {
 
     const parsed = firstRow(result);
     expect(parsed.result).toBe(expected);
+    expect(parsed.profitOverride).toBeNull();
     expect(parsed.warnings).toEqual([]);
     expect(result.warnings).toEqual([]);
   });
 
-  it('defaults an unmatched payout to win with a row warning', () => {
+  it('records a cash-out win with the actual profit override', () => {
+    const result = parseRows([
+      betRow({
+        transaction: '4101',
+        when: '05/11/2026 21:25',
+        betType: '主客和',
+        detail: 'FB4101 北港聯 對 南灣城 主客和 主 @ 9.24 $10',
+        debit: '$10.00',
+        credit: '$17.30',
+      }),
+    ]);
+
+    const parsed = firstRow(result);
+    expect(parsed.result).toBe('cash_out');
+    expect(parsed.profitOverride).toBe(7.3);
+    expect(parsed.warnings).toHaveLength(1);
+    expect(parsed.warnings.join(' ')).toContain('派彩快');
+    expect(result.warnings.join(' ')).toContain('派彩快');
+  });
+
+  it('records a cash-out loss with a negative profit override', () => {
+    const result = parseRows([
+      betRow({
+        transaction: '4102',
+        when: '05/11/2026 21:30',
+        betType: '主客和',
+        detail: 'FB4102 北港聯 對 南灣城 主客和 主 @ 2.96 $10',
+        debit: '$10.00',
+        credit: '$0.10',
+      }),
+    ]);
+
+    const parsed = firstRow(result);
+    expect(parsed.result).toBe('cash_out');
+    expect(parsed.profitOverride).toBe(-9.9);
+    expect(parsed.warnings.join(' ')).toContain('派彩快');
+    expect(result.warnings.join(' ')).toContain('派彩快');
+  });
+
+  it('treats an unmatched payout as cash_out instead of defaulting to win', () => {
     const result = parseRows([
       betRow({
         transaction: '4002',
@@ -148,10 +190,11 @@ describe('parseHkjcStatementHtml result inference', () => {
     ]);
 
     const parsed = firstRow(result);
-    expect(parsed.result).toBe('win');
+    expect(parsed.result).toBe('cash_out');
+    expect(parsed.profitOverride).toBe(89);
     expect(parsed.warnings).toHaveLength(1);
-    expect(parsed.warnings.join(' ')).toContain('派彩');
-    expect(result.warnings.join(' ')).toContain('派彩');
+    expect(parsed.warnings.join(' ')).toContain('派彩快');
+    expect(result.warnings.join(' ')).toContain('派彩快');
   });
 });
 
@@ -214,6 +257,70 @@ describe('parseHkjcStatementHtml market mapping', () => {
     );
 
     expect(parsed.legs).toEqual([expected]);
+  });
+
+  it('maps a 同場過關 combined bet to one other leg without splitting it', () => {
+    const parsed = firstRow(
+      parseRows([
+        betRow({
+          transaction: '6101',
+          when: '05/11/2026 22:15',
+          betType: '同場過關',
+          detail: 'FB1001 Alpha 對 Beta 同場過關 4. Alpha勝 & 總入球多於[2.5]球 @ 5.10 $10',
+          debit: '$10.00',
+          credit: '',
+        }),
+      ]),
+    );
+
+    expect(parsed.legs).toEqual([
+      {
+        match: 'Alpha vs Beta',
+        market: 'other',
+        selection: '4. Alpha勝 & 總入球多於[2.5]球',
+        odds: 5.1,
+      },
+    ]);
+  });
+
+  it('maps an 任何時間入球球員 selection to one other leg', () => {
+    const parsed = firstRow(
+      parseRows([
+        betRow({
+          transaction: '6102',
+          when: '05/11/2026 22:20',
+          betType: '任何時間入球球員',
+          detail: 'FB1002 Gamma 對 Delta 任何時間入球球員 201 Player One @ 2.04 $10',
+          debit: '$10.00',
+          credit: '',
+        }),
+      ]),
+    );
+
+    expect(parsed.legs).toEqual([
+      {
+        match: 'Gamma vs Delta',
+        market: 'other',
+        selection: '201 Player One',
+        odds: 2.04,
+      },
+    ]);
+  });
+
+  it('still rejects a genuinely unknown market label', () => {
+    const result = parseRows([
+      betRow({
+        transaction: '6103',
+        when: '05/11/2026 22:25',
+        betType: '未來市場',
+        detail: 'FB1003 Gamma 對 Delta 未來市場 選項 @ 2.50 $10',
+        debit: '$10.00',
+        credit: '',
+      }),
+    ]);
+
+    expect(result.rows).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
   });
 });
 

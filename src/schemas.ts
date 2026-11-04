@@ -124,7 +124,16 @@ function betTextSchema(max: number, message: string) {
 }
 
 export const betMarketSchema = z.enum(['1x2', 'handicap', 'totals', 'other']);
-export const betResultSchema = z.enum(['pending', 'win', 'half_win', 'push', 'half_loss', 'loss']);
+export const betResultSchema = z.enum([
+  'pending',
+  'win',
+  'half_win',
+  'push',
+  'half_loss',
+  'loss',
+  'cash_out',
+]);
+const manualBetResultSchema = z.enum(['pending', 'win', 'half_win', 'push', 'half_loss', 'loss']);
 
 const betOddsSchema = z
   .number()
@@ -158,9 +167,13 @@ function totalOddsIssue(
   return null;
 }
 
+const betProfitOverrideSchema = z
+  .number()
+  .refine(Number.isFinite, { message: '實際盈虧必須是有限數字' })
+  .transform(round2);
+
 const betEntryFields = {
   stake: betStakeSchema,
-  result: betResultSchema.default('pending'),
   legs: z.array(betLegSchema).min(1).max(8),
 };
 
@@ -168,6 +181,7 @@ export const createBetSchema = z
   .object({
     date: dateSchema.optional(),
     ...betEntryFields,
+    result: manualBetResultSchema.default('pending'),
   })
   .superRefine((value, ctx) => {
     const issue = totalOddsIssue(value.legs);
@@ -181,11 +195,32 @@ export const importBetItemSchema = z
     externalId: betTextSchema(120, '外部識別碼必須為 1–120 個字元'),
     date: dateSchema,
     ...betEntryFields,
+    result: betResultSchema.default('pending'),
+    profitOverride: betProfitOverrideSchema.nullable().optional(),
   })
   .superRefine((value, ctx) => {
     const issue = totalOddsIssue(value.legs);
     if (issue !== null) {
       ctx.addIssue({ code: 'custom', path: ['legs'], message: issue.message });
+    }
+
+    const hasOverride = value.profitOverride !== null && value.profitOverride !== undefined;
+    if (value.result === 'cash_out') {
+      if (!hasOverride) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['profitOverride'],
+          message: '派彩快注單需要提供實際盈虧',
+        });
+      }
+      return;
+    }
+    if (hasOverride) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['profitOverride'],
+        message: '只有派彩快注單可提供實際盈虧',
+      });
     }
   });
 
@@ -209,7 +244,7 @@ export const patchBetSchema = z
   .object({
     date: dateSchema.optional(),
     stake: betStakeSchema.optional(),
-    result: betResultSchema.optional(),
+    result: manualBetResultSchema.optional(),
     legs: z.array(betLegSchema).min(1).max(8).optional(),
   })
   .superRefine((value, ctx) => {
