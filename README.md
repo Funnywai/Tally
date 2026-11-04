@@ -416,8 +416,10 @@ CDNs, logos, or brand copy are used.
 `#bet` is a separate shell from the mahjong UI. The mahjong header has a compact `賭球` switch; the
 betting header switches back to `麻雀`. It stores one row per bet slip in `bets` plus 1–8
 `bet_legs`; a single bet has one leg, a parlay has 2–8. The slip-level result is one of
-`pending/win/half_win/push/half_loss/loss`; `total_odds` and `profit` are calculated on write and
-stored. Pending bets are excluded from profit/ROI/win-rate and shown as pending stake.
+`pending/win/half_win/push/half_loss/loss/cash_out`; `total_odds` and `profit` are calculated on write
+and stored. `cash_out` represents 派彩快 and stores the actual `payout − stake` as profit. Pending bets
+are excluded from profit/ROI/win-rate and shown as pending stake; cash-out P/L is included in totals
+and ROI, but excluded from win rate and biggest win/loss.
 
 The visual contract is [`frontend/BET-DESIGN.md`](frontend/BET-DESIGN.md). The betting UI does not
 use mahjong components, tokens, or `GameProvider`.
@@ -429,6 +431,9 @@ On the 賭球 page, click `匯入 HKJC` and choose `acctstmt.html` from the HKJC
 - The file is parsed locally in the browser. The raw HTML is never uploaded; only the parsed JSON is posted.
 - The preview lets you edit each row's result. A payout of 0 defaults to pending (待定, shown as
   `未開`), and the `未派彩全部設為輸` bulk action marks every no-payout row as a loss.
+- Early-payout (派彩快) rows whose payout does not match the normal odds formula are imported as
+  `cash_out`; their result is locked and their actual P/L (`payout − stake`) is stored. Cash-out bets
+  appear as `派彩快` in the slip list and are read-only there (delete and re-import to change them).
 - Duplicate `externalId`s are checked with a dry run and skipped. The server import is idempotent, so
   reruns are safe.
 - Limits: 8 days per HKJC export, 200 rows per import, and a 256 KB JSON body limit for the import

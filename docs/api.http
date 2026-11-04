@@ -138,6 +138,31 @@ Content-Type: application/json
   ]
 }
 
+### Import a cash-out bet (result cash_out + actual profit)
+POST {{baseUrl}}/api/bets/import
+Content-Type: application/json
+
+{
+  "dryRun": true,
+  "bets": [
+    {
+      "externalId": "hkjc:2026-11-04:TEST0000002",
+      "date": "2026-11-04",
+      "stake": 10,
+      "result": "cash_out",
+      "profitOverride": 7.3,
+      "legs": [
+        {
+          "match": "主隊 vs 客隊",
+          "market": "handicap",
+          "selection": "主隊 -0.5",
+          "odds": 9.24
+        }
+      ]
+    }
+  ]
+}
+
 ### Logout (JSON content type is required to block cross-site form logout)
 POST {{baseUrl}}/api/auth/logout
 Content-Type: application/json
