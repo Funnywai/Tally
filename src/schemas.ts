@@ -158,17 +158,50 @@ function totalOddsIssue(
   return null;
 }
 
+const betEntryFields = {
+  stake: betStakeSchema,
+  result: betResultSchema.default('pending'),
+  legs: z.array(betLegSchema).min(1).max(8),
+};
+
 export const createBetSchema = z
   .object({
     date: dateSchema.optional(),
-    stake: betStakeSchema,
-    result: betResultSchema.default('pending'),
-    legs: z.array(betLegSchema).min(1).max(8),
+    ...betEntryFields,
   })
   .superRefine((value, ctx) => {
     const issue = totalOddsIssue(value.legs);
     if (issue !== null) {
       ctx.addIssue({ code: 'custom', path: ['legs'], message: issue.message });
+    }
+  });
+
+export const importBetItemSchema = z
+  .object({
+    externalId: betTextSchema(120, '外部識別碼必須為 1–120 個字元'),
+    date: dateSchema,
+    ...betEntryFields,
+  })
+  .superRefine((value, ctx) => {
+    const issue = totalOddsIssue(value.legs);
+    if (issue !== null) {
+      ctx.addIssue({ code: 'custom', path: ['legs'], message: issue.message });
+    }
+  });
+
+export const importBetsSchema = z
+  .object({
+    dryRun: z.boolean().default(false),
+    bets: z.array(importBetItemSchema).min(1).max(200),
+  })
+  .superRefine((value, ctx) => {
+    const externalIds = value.bets.map((bet) => bet.externalId);
+    if (new Set(externalIds).size !== externalIds.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['bets'],
+        message: '外部識別碼不可重複',
+      });
     }
   });
 
@@ -210,6 +243,8 @@ export const betIdSchema = z.uuid();
 
 export type CreateBetInput = z.infer<typeof createBetSchema>;
 export type PatchBetInput = z.infer<typeof patchBetSchema>;
+export type ImportBetItemInput = z.infer<typeof importBetItemSchema>;
+export type ImportBetsInput = z.infer<typeof importBetsSchema>;
 
 export type CreateRecordInput = z.infer<typeof createRecordSchema>;
 export type PatchRecordInput = z.infer<typeof patchRecordSchema>;
