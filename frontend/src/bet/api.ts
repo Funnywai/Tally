@@ -14,7 +14,15 @@ import type {
 } from './types';
 
 const marketSchema = z.enum(['1x2', 'handicap', 'totals', 'other']);
-const resultSchema = z.enum(['pending', 'win', 'half_win', 'push', 'half_loss', 'loss']);
+const resultSchema = z.enum([
+  'pending',
+  'win',
+  'half_win',
+  'push',
+  'half_loss',
+  'loss',
+  'cash_out',
+]);
 
 const legSchema = z.object({
   position: z.number().int().positive(),

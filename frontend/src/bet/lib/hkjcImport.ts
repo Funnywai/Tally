@@ -1,4 +1,5 @@
 import type { BetResult, HkjcImportRow, HkjcParseResult } from '../types';
+import { formatBetMoney } from './format';
 import { parseLegs } from './hkjcDetail';
 import { extractRows, findStatementTable, isSkippableRow } from './hkjcHtml';
 import { computeTotalOdds, round2 } from './profit';
@@ -10,6 +11,7 @@ interface RowRef {
 
 interface ResultInference {
   readonly result: BetResult;
+  readonly profitOverride: number | null;
   readonly warning: string | null;
 }
 
@@ -63,22 +65,27 @@ function inferResult(stake: number, payout: number, totalOdds: number): ResultIn
   const roundedStake = round2(stake);
   const roundedPayout = round2(payout);
   if (roundedPayout === 0) {
-    return { result: 'pending', warning: null };
+    return { result: 'pending', profitOverride: null, warning: null };
   }
   if (roundedPayout === roundedStake) {
-    return { result: 'push', warning: null };
+    return { result: 'push', profitOverride: null, warning: null };
   }
   if (roundedPayout === round2(roundedStake * totalOdds)) {
-    return { result: 'win', warning: null };
+    return { result: 'win', profitOverride: null, warning: null };
   }
   const halfWinPayout = round2(roundedStake + (roundedStake * (totalOdds - 1)) / 2);
   if (roundedPayout === halfWinPayout) {
-    return { result: 'half_win', warning: null };
+    return { result: 'half_win', profitOverride: null, warning: null };
   }
   if (roundedPayout === round2(roundedStake / 2)) {
-    return { result: 'half_loss', warning: null };
+    return { result: 'half_loss', profitOverride: null, warning: null };
   }
-  return { result: 'win', warning: '派彩與賠率不符，已預設為贏，請於預覽修正' };
+  const profitOverride = round2(roundedPayout - roundedStake);
+  return {
+    result: 'cash_out',
+    profitOverride,
+    warning: `派彩快：實際輸贏 ${formatBetMoney(profitOverride)}，已用實際派彩記錄`,
+  };
 }
 
 function rowWarning(ref: RowRef, message: string): string {
@@ -159,6 +166,7 @@ export function parseHkjcStatementHtml(html: string): HkjcParseResult {
       stake: round2(stake),
       payout: round2(payout),
       result: inference.result,
+      profitOverride: inference.profitOverride,
       legs,
       betType,
       detail,

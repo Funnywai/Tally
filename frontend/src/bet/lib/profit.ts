@@ -41,6 +41,9 @@ export function computeProfit(stake: number, totalOdds: number, result: BetResul
       return round2(-s / 2);
     case 'loss':
       return round2(-s);
+    case 'cash_out':
+      // Cash-out profit is the actual payout minus stake, carried by the import override.
+      return null;
     default: {
       const exhaustive: never = result;
       return exhaustive;

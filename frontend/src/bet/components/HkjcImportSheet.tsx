@@ -33,6 +33,7 @@ function toImportBet(item: PreviewRow) {
     stake: item.row.stake,
     result: item.result,
     legs: item.row.legs,
+    profitOverride: item.row.profitOverride,
   };
 }
 

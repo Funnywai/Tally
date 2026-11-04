@@ -51,6 +51,8 @@ export function resultLabel(result: BetResult): string {
       return '半輸';
     case 'loss':
       return '輸';
+    case 'cash_out':
+      return '派彩快';
     default: {
       const exhaustive: never = result;
       return exhaustive;

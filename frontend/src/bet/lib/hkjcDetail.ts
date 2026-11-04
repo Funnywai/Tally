@@ -21,6 +21,8 @@ const MARKET_LABELS = [
   '下一隊入球',
   '開出角球',
   '特別項目',
+  '同場過關',
+  '任何時間入球球員',
 ] as const;
 
 const MARKET_BY_LABEL: Readonly<Record<string, BetMarket>> = {
