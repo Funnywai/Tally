@@ -4,7 +4,7 @@
 
 ## 1. Atmosphere
 
-**Floodlit night match.** Deep navy-black sky, faint chalk pitch lines, a scoreboard/odds-board typography, and a floodlight volt accent. The interface should feel like a betting slip laid on a dark stadium table: dense, numeric, calm, and separate from the mahjong felt.
+**HKJC night wallet.** Deep navy header, electric-blue hero wash, midnight-blue action with an ice-blue rim, gold status accent, and a faint cool grid. The interface should feel like a betting slip laid on a dark stadium table: dense, numeric, calm, and separate from the mahjong felt. Borrow HKJC's navy/blue/gold tension, not its green betting-page tool UI; gold is reserved for pending/status and brand marks, never for buttons.
 
 - No mahjong felt green, cinnabar, jade/coral money semantics, or tally marks.
 - No external fonts, CDNs, logos, or brand assets.
@@ -16,28 +16,42 @@ All tokens are namespaced `--bet-*` on `:root`.
 
 | Token | Value | Usage |
 |---|---|---|
-| `--bet-bg` | `#050b14` | Page background |
-| `--bet-bg-2` | `#081120` | Gradient / raised page area |
-| `--bet-surface` | `#0c1626` | Cards, summary cells |
-| `--bet-raised` | `#122033` | Inputs, active surfaces |
-| `--bet-line` | `#1e3147` | Decorative hairline: card edges, separators (not for controls) |
-| `--bet-line-strong` | `#2c4a63` | Decorative emphasis: dashed empty states, container accents |
-| `--bet-control-line` | `#526d82` | Interactive control borders: inputs, chips, switches, outline buttons, sheet. 3.34:1 on `--bet-surface`, 3.63:1 on `--bet-bg` |
-| `--bet-text` | `#f3f7f2` | Primary text |
-| `--bet-dim` | `#b8c4cf` | Secondary text |
-| `--bet-muted` | `#7f92a3` | Metadata, hints |
-| `--bet-volt` | `#d8ff4f` | Primary action, active nav, focus |
-| `--bet-volt-ink` | `#0a1204` | Text on volt |
-| `--bet-win` | `#5ee6a8` | Profit, win |
-| `--bet-loss` | `#ff6b6b` | Loss, destructive |
-| `--bet-pending` | `#ffc857` | Pending / waiting |
-| `--bet-push` | `#9fb0bf` | Push / neutral |
-| `--bet-scrim` | `rgba(2, 6, 12, 0.78)` | Dialog backdrop |
-| `--bet-glow` | `rgba(216, 255, 79, 0.10)` | Floodlight wash |
-| `--bet-pitch-line` | `rgba(243, 247, 242, 0.045)` | Chalk lines |
-| `--bet-shadow` | `0 18px 48px rgba(0, 0, 0, 0.38)` | Sheets/toasts |
+| `--bet-bg` | `#07131F` | Page background |
+| `--bet-bg-2` | `#081A2C` | Gradient / raised page area |
+| `--bet-surface` | `#0F2134` | Cards, summary cells |
+| `--bet-raised` | `#16314B` | Inputs, active surfaces |
+| `--bet-line` | `#203A55` | Decorative hairline: card edges, separators (not for controls) |
+| `--bet-line-strong` | `#2A4560` | Decorative emphasis: dashed empty states, container accents |
+| `--bet-control-line` | `#5F7F9C` | Interactive control borders: inputs, chips, switches, outline buttons, sheet. 3.9:1 on `--bet-surface`, 4.5:1 on `--bet-bg` |
+| `--bet-text` | `#F4F8FC` | Primary text |
+| `--bet-dim` | `#B5CCE6` | Secondary text |
+| `--bet-muted` | `#93A9BF` | Metadata, hints |
+| `--bet-accent` | `#F5C842` | Brand/data accent: header mark, total odds; never a button |
+| `--bet-accent-ink` | `#06111C` | Text on gold |
+| `--bet-action` | `#173B6B` | Primary CTA, selected filters/chips, active nav fill |
+| `--bet-action-ink` | `#FFFFFF` | Text on midnight blue |
+| `--bet-action-text` | `#9CC3FF` | Text actions (`結算`) |
+| `--bet-nav-active` | `#9CC3FF` | Active bottom-nav label/indicator |
+| `--bet-action-border` | `#7FB6FF` | Ice-blue rim for dark actions and focus |
+| `--bet-action-soft` | `rgba(23, 59, 107, 0.32)` | Switch tint, retry wash |
+| `--bet-action-line` | `rgba(127, 182, 255, 0.5)` | Switch/retry borders |
+| `--bet-info` | `#7FB6FF` | Leg indices, secondary blue detail |
+| `--bet-win` | `#49D18A` | Profit, win |
+| `--bet-loss` | `#FF6B6B` | Loss, destructive |
+| `--bet-pending` | `#F5C842` | Pending / waiting |
+| `--bet-push` | `#9FB0BF` | Push / neutral |
+| `--bet-cash-out` | `#F5C842` | Early payout (`派彩快`) |
+| `--bet-type-bg` / `--bet-type-ink` | `#173C5C` / `#8FC1FF` | Type badge |
+| `--bet-header-bg` | `linear-gradient(135deg, #0A1B45, #0D2A54)` | Header |
+| `--bet-summary-bg` | blue radial + `linear-gradient(135deg, #123A68, #0C2440)` | Summary hero |
+| `--bet-scrim` | `rgba(2, 8, 16, 0.82)` | Dialog backdrop |
+| `--bet-accent-glow` | `rgba(245, 200, 66, 0.10)` | Gold wash |
+| `--bet-pitch-line` | `rgba(120, 170, 255, 0.045)` | Cool grid |
+| `--bet-shadow` | `0 18px 48px rgba(0, 0, 0, 0.4)` | Sheets/toasts |
+| `--bet-card-shadow` | `0 8px 24px rgba(0, 0, 0, 0.16)` | Bet cards |
+| `--bet-cta-shadow` | `0 10px 24px rgba(23, 59, 107, 0.3), inset 0 0 0 1px rgba(127, 182, 255, 0.5)` | Primary CTA |
 
-Contrast rules: text ≥ 4.5:1 on its surface; UI boundaries ≥ 3:1; never rely on colour alone. Money always carries a sign; results always carry a text label. `--bet-line` and `--bet-line-strong` are decorative hairlines (they fall below 3:1 by design); every interactive control border uses `--bet-control-line`, so the UI-boundary rule holds for controls. Focus stays on `--bet-volt`; selected chips keep the volt wash border.
+Contrast rules: text ≥ 4.5:1 on its surface; UI boundaries ≥ 3:1; never rely on colour alone. Money always carries a sign; results always carry a text label. `--bet-line` and `--bet-line-strong` are decorative hairlines (they fall below 3:1 by design); every interactive control border uses `--bet-control-line`, so the UI-boundary rule holds for controls. Focus stays on `--bet-action-border`; selected chips use the midnight action fill, ice rim, and `--bet-action-ink` text.
 
 ## 3. Typography
 
@@ -56,17 +70,17 @@ Contrast rules: text ≥ 4.5:1 on its surface; UI boundaries ≥ 3:1; never rely
 ## 5. Components
 
 - **Shell**: `.bet-shell`, `.bet-header`, `.bet-main`, `.bet-nav`, `.bet-page-enter`.
-- **Header**: pitch mark, `Tally` wordmark, 「賭球」 sub, 「麻雀」 switch pill.
-- **Nav**: two tabs, 注單 / 統計; volt active bar, not a mahjong pill.
-- **Summary**: 3 scoreboard cells; today/month profit and all pending count/stake.
-- **CTA**: full-width volt pill/square, `新增注單`.
-- **Buttons**: primary = volt fill + `--bet-volt-ink` text; danger = `--bet-loss` fill + `--bet-volt-ink` text (6.87:1, clears the 4.5:1 body-text rule); ghost/outline keep token borders.
-- **Filters**: 全部 / 待結算 / 已結算; selected uses volt wash + border.
+- **Header**: pitch mark, `Tally` wordmark, 「賭球」 sub, pending chip (待結算 + count), 「麻雀」 switch pill.
+- **Nav**: two tabs, 注單 / 統計; electric-blue active bar, not a mahjong pill.
+- **Summary**: 2 scoreboard cells; last 30 days and last 90 days profit. Pending count moves to the header chip.
+- **CTA**: full-width midnight-blue pill/square with ice rim, `匯入 HKJC`; HKJC import is the only add path.
+- **Buttons**: primary = midnight-blue fill + ice border + `--bet-action-ink` text; danger = `--bet-loss` fill + `--bet-accent-ink` text (high contrast, clears the 4.5:1 body-text rule); ghost/outline keep token borders.
+- **Filters**: 全部 / 待結算 / 已結算; selected uses midnight fill, ice border, and `--bet-action-ink` text.
 - **Bet card**: type badge, record time, result badge; numbered legs `01/02`; dotted separators; stake / total odds / profit footer; pending card has a `結算` text action. Imported `cash_out` cards show a `派彩快` badge and actual P/L, are read-only, and have a delete action.
 - **Sheet**: full-screen for the bet form; bottom sheet for confirmation. Native `<dialog>` + focus trap + Escape.
-- **HKJC import sheet**: full-screen sheet with a file picker and local-only privacy note; summary counts for importable, duplicate, and warning rows; preview cards with an editable result select and a `已存在` duplicate badge; cash-out rows show `派彩快` + actual P/L with a locked result; `未派彩全部設為輸` bulk action; sticky footer with cancel/import.
-- **Form**: date, leg fieldsets, market chips, result chips, total-odds readout, profit preview, sticky footer.
-- **Stats**: period segmented control, hero P/L, 2×2 KPI, type rows, market diverging bars, 6-month CSS column chart, biggest win/loss cards.
+- **HKJC import sheet**: full-screen sheet with a file picker and local-only privacy note; summary counts for importable, duplicate, and warning rows; preview cards with an editable result select and a `已存在` duplicate badge; cash-out rows show `派彩快` + actual P/L with a locked result; no-payout rows default to 輸; sticky footer with cancel/import.
+- **Form**: edit/settle only; date, leg fieldsets, market chips, result chips, total-odds readout, profit preview, sticky footer.
+- **Stats**: last30/year/all period segmented control, hero P/L, 2×2 KPI, type rows, market diverging bars, 6-month CSS column chart, biggest win/loss cards.
 - **States**: `.bet-empty`, `.bet-inline-error`, `.bet-skeleton*`, `.bet-toast*`, `.bet-banner`.
 
 ## 6. Motion
@@ -77,7 +91,7 @@ Contrast rules: text ≥ 4.5:1 on its surface; UI boundaries ≥ 3:1; never rely
 
 ## 7. Accessibility
 
-- Focus ring: 2px `--bet-volt`, 2px offset, only `:focus-visible`.
+- Focus ring: 2px `--bet-action-border`, 2px offset, only `:focus-visible`.
 - Dialog focus trap, Escape close, focus return to trigger, body scroll lock.
 - `aria-live="polite"` for toast and profit preview; `role="alert"` for inline errors.
 - Inputs have visible labels; errors use `aria-invalid` and text.
