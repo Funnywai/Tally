@@ -49,7 +49,6 @@ interface HkjcImportSummaryProps {
   readonly warnings: readonly string[];
   readonly busy: boolean;
   readonly onSelectAll: () => void;
-  readonly onSetNoPayoutLoss: () => void;
 }
 
 export function HkjcImportSummary({
@@ -59,7 +58,6 @@ export function HkjcImportSummary({
   warnings,
   busy,
   onSelectAll,
-  onSetNoPayoutLoss,
 }: HkjcImportSummaryProps) {
   return (
     <>
@@ -94,14 +92,6 @@ export function HkjcImportSummary({
           disabled={busy || importable === 0}
         >
           全選
-        </button>
-        <button
-          type="button"
-          className="bet-button bet-button--outline"
-          onClick={onSetNoPayoutLoss}
-          disabled={busy || importable === 0}
-        >
-          未派彩全部設為輸
         </button>
       </div>
     </>

@@ -11,6 +11,11 @@ const MARKETS: readonly { id: BetMarket; label: string }[] = [
   { id: 'handicap', label: '讓球' },
   { id: 'totals', label: '大細' },
   { id: 'other', label: '其他' },
+  { id: 'same_game', label: '同場過關' },
+  { id: 'anytime_scorer', label: '任何時間入球球員' },
+  { id: 'correct_score', label: '波膽' },
+  { id: 'corner_totals', label: '開出角球大細' },
+  { id: 'corners', label: '開出角球' },
 ];
 
 const RESULTS: readonly { id: BetResult; label: string }[] = [
@@ -23,7 +28,6 @@ const RESULTS: readonly { id: BetResult; label: string }[] = [
 ];
 
 interface BetFormProps {
-  readonly mode: 'create' | 'edit';
   readonly initial: BetDraft;
   readonly saving: boolean;
   readonly error: string | null;
@@ -32,7 +36,7 @@ interface BetFormProps {
   readonly onDelete?: (() => void) | undefined;
 }
 
-export function BetForm({ mode, initial, saving, error, onClose, onSave, onDelete }: BetFormProps) {
+export function BetForm({ initial, saving, error, onClose, onSave, onDelete }: BetFormProps) {
   const [draft, setDraft] = useState<BetDraft>(initial);
   const [attempted, setAttempted] = useState(false);
   const formId = useId();
@@ -101,7 +105,7 @@ export function BetForm({ mode, initial, saving, error, onClose, onSave, onDelet
     <BetSheet
       open
       full
-      title={mode === 'create' ? '新增注單' : '編輯注單'}
+      title="編輯注單"
       onClose={onClose}
       footer={
         <>

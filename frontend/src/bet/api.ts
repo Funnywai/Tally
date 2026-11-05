@@ -13,7 +13,17 @@ import type {
   BetStatusFilter,
 } from './types';
 
-const marketSchema = z.enum(['1x2', 'handicap', 'totals', 'other']);
+const marketSchema = z.enum([
+  '1x2',
+  'handicap',
+  'totals',
+  'other',
+  'same_game',
+  'anytime_scorer',
+  'correct_score',
+  'corner_totals',
+  'corners',
+]);
 const resultSchema = z.enum([
   'pending',
   'win',
@@ -57,7 +67,8 @@ const overviewDaySchema = z.object({
 
 const overviewSchema = z.object({
   today: overviewDaySchema,
-  month: overviewDaySchema,
+  last30Days: overviewDaySchema,
+  last90Days: overviewDaySchema,
   pending: z.object({ count: z.number(), stake: z.number() }),
 });
 
@@ -102,7 +113,7 @@ const biggestSchema = z.object({
 });
 
 const statsSchema = z.object({
-  period: z.enum(['month', 'year', 'all']),
+  period: z.enum(['last30', 'year', 'all']),
   totals: totalsSchema,
   byType: z.array(typeSchema),
   byMarket: z.array(marketStatsSchema),
@@ -136,10 +147,6 @@ export async function fetchBets(options: {
 
 export async function fetchBetOverview(): Promise<BetOverview> {
   return requestJson('/api/bets/overview', {}, overviewSchema);
-}
-
-export async function createBet(payload: BetPayload): Promise<BetItem> {
-  return requestJson('/api/bets', jsonInit('POST', payload), itemSchema);
 }
 
 export async function updateBet(id: string, payload: Partial<BetPayload>): Promise<BetItem> {

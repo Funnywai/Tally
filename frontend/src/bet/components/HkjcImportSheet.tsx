@@ -119,16 +119,6 @@ export function HkjcImportSheet({ onClose, onImported, onNotify }: HkjcImportShe
     );
   };
 
-  const setNoPayoutToLoss = () => {
-    setRows((current) =>
-      current.map((item) =>
-        item.status !== 'duplicate' && item.row.payout === 0
-          ? { ...item, result: 'loss' as const }
-          : item,
-      ),
-    );
-  };
-
   const handleImport = async () => {
     if (busy !== null) {
       return;
@@ -178,7 +168,7 @@ export function HkjcImportSheet({ onClose, onImported, onNotify }: HkjcImportShe
       open
       full
       title="匯入 HKJC"
-      description="從 HKJC 帳戶結單 HTML 匯入注單，核對後才寫入。"
+      description="由 HKJC 帳戶結單匯入注單，核對後寫入。"
       onClose={requestClose}
       footer={
         <>
@@ -235,7 +225,6 @@ export function HkjcImportSheet({ onClose, onImported, onNotify }: HkjcImportShe
               warnings={globalWarnings}
               busy={busy !== null}
               onSelectAll={selectAll}
-              onSetNoPayoutLoss={setNoPayoutToLoss}
             />
 
             {busy === 'checking' ? (

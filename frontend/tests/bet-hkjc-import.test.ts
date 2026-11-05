@@ -12,7 +12,7 @@ import {
 } from './helpers/hkjcStatement';
 
 describe('parseHkjcStatementHtml singles', () => {
-  it('parses a pending single and maps the market, selection, and odds', () => {
+  it('parses a no-payout single as a loss and maps the market, selection, and odds', () => {
     const result = parseRows([
       betRow({
         transaction: '<span>1001</span>',
@@ -34,7 +34,7 @@ describe('parseHkjcStatementHtml singles', () => {
     expect(parsed.time).toBe('20:15');
     expect(parsed.stake).toBe(10);
     expect(parsed.payout).toBe(0);
-    expect(parsed.result).toBe('pending');
+    expect(parsed.result).toBe('loss');
     expect(parsed.profitOverride).toBeNull();
     expect(parsed.betType).toBe('入球大細');
     expect(parsed.detail).toContain('FB1001');
@@ -153,9 +153,8 @@ describe('parseHkjcStatementHtml result inference', () => {
     const parsed = firstRow(result);
     expect(parsed.result).toBe('cash_out');
     expect(parsed.profitOverride).toBe(7.3);
-    expect(parsed.warnings).toHaveLength(1);
-    expect(parsed.warnings.join(' ')).toContain('派彩快');
-    expect(result.warnings.join(' ')).toContain('派彩快');
+    expect(parsed.warnings).toEqual([]);
+    expect(result.warnings).toEqual([]);
   });
 
   it('records a cash-out loss with a negative profit override', () => {
@@ -173,8 +172,8 @@ describe('parseHkjcStatementHtml result inference', () => {
     const parsed = firstRow(result);
     expect(parsed.result).toBe('cash_out');
     expect(parsed.profitOverride).toBe(-9.9);
-    expect(parsed.warnings.join(' ')).toContain('派彩快');
-    expect(result.warnings.join(' ')).toContain('派彩快');
+    expect(parsed.warnings).toEqual([]);
+    expect(result.warnings).toEqual([]);
   });
 
   it('treats an unmatched payout as cash_out instead of defaulting to win', () => {
@@ -192,9 +191,8 @@ describe('parseHkjcStatementHtml result inference', () => {
     const parsed = firstRow(result);
     expect(parsed.result).toBe('cash_out');
     expect(parsed.profitOverride).toBe(89);
-    expect(parsed.warnings).toHaveLength(1);
-    expect(parsed.warnings.join(' ')).toContain('派彩快');
-    expect(result.warnings.join(' ')).toContain('派彩快');
+    expect(parsed.warnings).toEqual([]);
+    expect(result.warnings).toEqual([]);
   });
 });
 
@@ -259,7 +257,7 @@ describe('parseHkjcStatementHtml market mapping', () => {
     expect(parsed.legs).toEqual([expected]);
   });
 
-  it('maps a 同場過關 combined bet to one other leg without splitting it', () => {
+  it('maps a 同場過關 combined bet to one same-game leg without splitting it', () => {
     const parsed = firstRow(
       parseRows([
         betRow({
@@ -276,14 +274,14 @@ describe('parseHkjcStatementHtml market mapping', () => {
     expect(parsed.legs).toEqual([
       {
         match: 'Alpha vs Beta',
-        market: 'other',
+        market: 'same_game',
         selection: '4. Alpha勝 & 總入球多於[2.5]球',
         odds: 5.1,
       },
     ]);
   });
 
-  it('maps an 任何時間入球球員 selection to one other leg', () => {
+  it('maps an 任何時間入球球員 selection to one anytime-scorer leg', () => {
     const parsed = firstRow(
       parseRows([
         betRow({
@@ -300,7 +298,7 @@ describe('parseHkjcStatementHtml market mapping', () => {
     expect(parsed.legs).toEqual([
       {
         match: 'Gamma vs Delta',
-        market: 'other',
+        market: 'anytime_scorer',
         selection: '201 Player One',
         odds: 2.04,
       },

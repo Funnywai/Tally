@@ -75,7 +75,12 @@ export const MARKET_CASES = [
     transaction: '6001',
     name: '波膽',
     detail: 'FB6001 北港聯 對 南灣城 波膽 2:1 @ 8.50 $10',
-    expected: { match: '北港聯 vs 南灣城', market: 'other', selection: '2:1', odds: 8.5 },
+    expected: {
+      match: '北港聯 vs 南灣城',
+      market: 'correct_score',
+      selection: '2:1',
+      odds: 8.5,
+    },
   },
   {
     transaction: '6002',
@@ -86,6 +91,17 @@ export const MARKET_CASES = [
       market: 'totals',
       selection: '細 [1.5 球]',
       odds: 1.88,
+    },
+  },
+  {
+    transaction: '6003',
+    name: '開出角球大細',
+    detail: 'FB6003 北港聯 對 南灣城 開出角球大細 大 [10.5 個] @ 1.90 $10',
+    expected: {
+      match: '北港聯 vs 南灣城',
+      market: 'corner_totals',
+      selection: '大 [10.5 個]',
+      odds: 1.9,
     },
   },
 ] as const;

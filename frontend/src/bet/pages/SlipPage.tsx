@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { messageOf } from '../../hooks/useAsync';
-import { formatDateLong, groupByDate, hkToday } from '../../lib/date';
-import { createBet, deleteBet, fetchBetOverview, fetchBets, updateBet } from '../api';
+import { formatDateLong, groupByDate } from '../../lib/date';
+import { deleteBet, fetchBets, updateBet } from '../api';
 import { BetCard } from '../components/BetCard';
 import { BetConfirmDialog } from '../components/BetConfirmDialog';
 import { BetForm } from '../components/BetForm';
@@ -9,10 +9,8 @@ import { BetUploadIcon } from '../components/BetIcons';
 import { BetSummary } from '../components/BetSummary';
 import type { BetToastKind } from '../components/BetToast';
 import { HkjcImportSheet } from '../components/HkjcImportSheet';
-import { draftFromBet, emptyDraft } from '../lib/form';
+import { draftFromBet } from '../lib/form';
 import type { BetItem, BetOverview, BetPayload, BetStatusFilter } from '../types';
-
-type FormState = { readonly mode: 'create' } | { readonly mode: 'edit'; readonly bet: BetItem };
 
 const FILTERS: readonly { id: BetStatusFilter; label: string }[] = [
   { id: 'all', label: '全部' },
@@ -21,8 +19,16 @@ const FILTERS: readonly { id: BetStatusFilter; label: string }[] = [
 ];
 
 export function SlipPage({
+  overview,
+  overviewLoading,
+  overviewError,
+  onRefreshOverview,
   onNotify,
 }: {
+  readonly overview: BetOverview | null;
+  readonly overviewLoading: boolean;
+  readonly overviewError: string | null;
+  readonly onRefreshOverview: () => Promise<void>;
   readonly onNotify: (message: string, kind: BetToastKind) => void;
 }) {
   const [status, setStatus] = useState<BetStatusFilter>('all');
@@ -31,10 +37,7 @@ export function SlipPage({
   const [listLoading, setListLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
-  const [overview, setOverview] = useState<BetOverview | null>(null);
-  const [overviewLoading, setOverviewLoading] = useState(true);
-  const [overviewError, setOverviewError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState | null>(null);
+  const [editing, setEditing] = useState<BetItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<BetItem | null>(null);
@@ -43,29 +46,6 @@ export function SlipPage({
   const [importOpen, setImportOpen] = useState(false);
 
   const loadSeq = useRef(0);
-  const overviewSeq = useRef(0);
-
-  const loadOverview = useCallback(async () => {
-    const seq = ++overviewSeq.current;
-    setOverviewLoading(true);
-    setOverviewError(null);
-    try {
-      const data = await fetchBetOverview();
-      if (seq !== overviewSeq.current) {
-        return;
-      }
-      setOverview(data);
-    } catch (caught: unknown) {
-      if (seq !== overviewSeq.current) {
-        return;
-      }
-      setOverviewError(messageOf(caught));
-    } finally {
-      if (seq === overviewSeq.current) {
-        setOverviewLoading(false);
-      }
-    }
-  }, []);
 
   const loadFirst = useCallback(
     async (showLoading = true) => {
@@ -94,10 +74,6 @@ export function SlipPage({
     },
     [status],
   );
-
-  useEffect(() => {
-    void loadOverview();
-  }, [loadOverview]);
 
   useEffect(() => {
     setItems([]);
@@ -130,21 +106,16 @@ export function SlipPage({
   };
 
   const handleSave = async (payload: BetPayload) => {
-    if (form === null) {
+    if (editing === null) {
       return;
     }
     setSaving(true);
     setSaveError(null);
     try {
-      if (form.mode === 'edit') {
-        await updateBet(form.bet.id, payload);
-      } else {
-        await createBet(payload);
-      }
-      const message = form.mode === 'edit' ? '注單已更新' : '注單已新增';
-      setForm(null);
-      onNotify(message, 'success');
-      await Promise.all([loadFirst(false), loadOverview()]);
+      await updateBet(editing.id, payload);
+      setEditing(null);
+      onNotify('注單已更新', 'success');
+      await Promise.all([loadFirst(false), onRefreshOverview()]);
     } catch (caught: unknown) {
       setSaveError(messageOf(caught));
     } finally {
@@ -161,9 +132,9 @@ export function SlipPage({
     try {
       await deleteBet(deleting.id);
       setDeleting(null);
-      setForm(null);
+      setEditing(null);
       onNotify('注單已刪除', 'success');
-      await Promise.all([loadFirst(false), loadOverview()]);
+      await Promise.all([loadFirst(false), onRefreshOverview()]);
     } catch (caught: unknown) {
       setDeleteError(messageOf(caught));
     } finally {
@@ -172,8 +143,7 @@ export function SlipPage({
   };
 
   const groups = groupByDate(items);
-  const initialDraft =
-    form === null ? null : form.mode === 'edit' ? draftFromBet(form.bet) : emptyDraft(hkToday());
+  const initialDraft = editing === null ? null : draftFromBet(editing);
 
   return (
     <div className="bet-slip">
@@ -181,26 +151,12 @@ export function SlipPage({
         overview={overview}
         loading={overviewLoading}
         error={overviewError}
-        onRetry={() => void loadOverview()}
+        onRetry={() => void onRefreshOverview()}
       />
 
       <div className="bet-cta-row">
-        <button
-          type="button"
-          className="bet-cta"
-          onClick={() => {
-            setSaveError(null);
-            setForm({ mode: 'create' });
-          }}
-        >
-          新增注單
-        </button>
-        <button
-          type="button"
-          className="bet-button bet-button--outline bet-import-trigger"
-          onClick={() => setImportOpen(true)}
-        >
-          <BetUploadIcon size={16} />
+        <button type="button" className="bet-cta" onClick={() => setImportOpen(true)}>
+          <BetUploadIcon size={18} />
           匯入 HKJC
         </button>
       </div>
@@ -244,16 +200,14 @@ export function SlipPage({
       {!listLoading && listError === null && items.length === 0 ? (
         <div className="bet-empty">
           <p className="bet-empty__title">未有注單</p>
-          <p className="bet-empty__description">新增第一張注單，之後可在這裡補上結果。</p>
+          <p className="bet-empty__description">由 HKJC 匯入注單，之後可在這裡檢視及結算。</p>
           <button
             type="button"
             className="bet-button bet-button--primary"
-            onClick={() => {
-              setSaveError(null);
-              setForm({ mode: 'create' });
-            }}
+            onClick={() => setImportOpen(true)}
           >
-            新增第一張
+            <BetUploadIcon size={16} />
+            匯入 HKJC
           </button>
         </div>
       ) : null}
@@ -274,11 +228,11 @@ export function SlipPage({
                     return;
                   }
                   setSaveError(null);
-                  setForm({ mode: 'edit', bet });
+                  setEditing(bet);
                 }}
                 onSettle={() => {
                   setSaveError(null);
-                  setForm({ mode: 'edit', bet });
+                  setEditing(bet);
                 }}
                 onDelete={
                   bet.result === 'cash_out'
@@ -318,28 +272,23 @@ export function SlipPage({
         </button>
       )}
 
-      {form === null || initialDraft === null ? null : (
+      {editing === null || initialDraft === null ? null : (
         <BetForm
-          key={form.mode === 'edit' ? form.bet.id : 'new'}
-          mode={form.mode}
+          key={editing.id}
           initial={initialDraft}
           saving={saving}
           error={saveError}
           onClose={() => {
             if (!saving) {
-              setForm(null);
+              setEditing(null);
               setSaveError(null);
             }
           }}
           onSave={(payload) => void handleSave(payload)}
-          onDelete={
-            form.mode === 'edit'
-              ? () => {
-                  setDeleteError(null);
-                  setDeleting(form.bet);
-                }
-              : undefined
-          }
+          onDelete={() => {
+            setDeleteError(null);
+            setDeleting(editing);
+          }}
         />
       )}
 
@@ -347,7 +296,7 @@ export function SlipPage({
         <HkjcImportSheet
           onClose={() => setImportOpen(false)}
           onImported={() => {
-            void Promise.all([loadFirst(false), loadOverview()]);
+            void Promise.all([loadFirst(false), onRefreshOverview()]);
           }}
           onNotify={onNotify}
         />

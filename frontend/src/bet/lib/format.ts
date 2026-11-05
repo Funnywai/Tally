@@ -70,6 +70,16 @@ export function marketLabel(market: BetMarket): string {
       return '大細';
     case 'other':
       return '其他';
+    case 'same_game':
+      return '同場過關';
+    case 'anytime_scorer':
+      return '任何時間入球球員';
+    case 'correct_score':
+      return '波膽';
+    case 'corner_totals':
+      return '開出角球大細';
+    case 'corners':
+      return '開出角球';
     default: {
       const exhaustive: never = market;
       return exhaustive;

@@ -1,5 +1,4 @@
 import type { BetResult, HkjcImportRow, HkjcParseResult } from '../types';
-import { formatBetMoney } from './format';
 import { parseLegs } from './hkjcDetail';
 import { extractRows, findStatementTable, isSkippableRow } from './hkjcHtml';
 import { computeTotalOdds, round2 } from './profit';
@@ -12,7 +11,6 @@ interface RowRef {
 interface ResultInference {
   readonly result: BetResult;
   readonly profitOverride: number | null;
-  readonly warning: string | null;
 }
 
 function pad2(value: number): string {
@@ -65,27 +63,22 @@ function inferResult(stake: number, payout: number, totalOdds: number): ResultIn
   const roundedStake = round2(stake);
   const roundedPayout = round2(payout);
   if (roundedPayout === 0) {
-    return { result: 'pending', profitOverride: null, warning: null };
+    return { result: 'loss', profitOverride: null };
   }
   if (roundedPayout === roundedStake) {
-    return { result: 'push', profitOverride: null, warning: null };
+    return { result: 'push', profitOverride: null };
   }
   if (roundedPayout === round2(roundedStake * totalOdds)) {
-    return { result: 'win', profitOverride: null, warning: null };
+    return { result: 'win', profitOverride: null };
   }
   const halfWinPayout = round2(roundedStake + (roundedStake * (totalOdds - 1)) / 2);
   if (roundedPayout === halfWinPayout) {
-    return { result: 'half_win', profitOverride: null, warning: null };
+    return { result: 'half_win', profitOverride: null };
   }
   if (roundedPayout === round2(roundedStake / 2)) {
-    return { result: 'half_loss', profitOverride: null, warning: null };
+    return { result: 'half_loss', profitOverride: null };
   }
-  const profitOverride = round2(roundedPayout - roundedStake);
-  return {
-    result: 'cash_out',
-    profitOverride,
-    warning: `派彩快：實際輸贏 ${formatBetMoney(profitOverride)}，已用實際派彩記錄`,
-  };
+  return { result: 'cash_out', profitOverride: round2(roundedPayout - roundedStake) };
 }
 
 function rowWarning(ref: RowRef, message: string): string {
@@ -154,10 +147,6 @@ export function parseHkjcStatementHtml(html: string): HkjcParseResult {
 
     const payout = payoutValue ?? 0;
     const inference = inferResult(stake, payout, computeTotalOdds(legs));
-    const rowWarnings = inference.warning === null ? [] : [inference.warning];
-    if (inference.warning !== null) {
-      warnings.push(rowWarning(ref, inference.warning));
-    }
     seen.add(externalId);
     rows.push({
       externalId,
@@ -170,7 +159,7 @@ export function parseHkjcStatementHtml(html: string): HkjcParseResult {
       legs,
       betType,
       detail,
-      warnings: rowWarnings,
+      warnings: [],
     });
   }
 

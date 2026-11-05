@@ -37,6 +37,9 @@ const MARKET_BY_LABEL: Readonly<Record<string, BetMarket>> = {
   客隊入球大細: 'totals',
   主隊半場入球大細: 'totals',
   客隊半場入球大細: 'totals',
+  同場過關: 'same_game',
+  任何時間入球球員: 'anytime_scorer',
+  波膽: 'correct_score',
 };
 
 const LABEL_PATTERN = [...MARKET_LABELS]
@@ -57,7 +60,7 @@ function escapeRegExp(value: string): string {
 
 function marketForLabel(label: string): BetMarket {
   if (label.startsWith('開出角球')) {
-    return 'other';
+    return label.includes('大細') ? 'corner_totals' : 'corners';
   }
   return MARKET_BY_LABEL[label] ?? 'other';
 }
