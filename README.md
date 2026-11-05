@@ -273,8 +273,8 @@ Messages may be Traditional Chinese; **codes are the contract**.
 | `POST` | `/api/bets/import` | yes | Import 1-200 bets; `dryRun` checks duplicates, otherwise dedupes by `externalId` |
 | `PATCH` | `/api/bets/:id` | yes | Update date/stake/result/legs |
 | `DELETE` | `/api/bets/:id` | yes | Delete bet; legs cascade |
-| `GET` | `/api/bets/overview` | yes | Today/month/pending summary |
-| `GET` | `/api/bets/stats?period=` | yes | month/year/all betting stats |
+| `GET` | `/api/bets/overview` | yes | Today/last 30 days/last 90 days/pending summary |
+| `GET` | `/api/bets/stats?period=` | yes | last30/year/all betting stats |
 
 ### Auth
 
@@ -426,11 +426,12 @@ use mahjong components, tokens, or `GameProvider`.
 
 #### HKJC 8-day import
 
-On the 賭球 page, click `匯入 HKJC` and choose `acctstmt.html` from the HKJC 8-day account statement.
+Bets are added only through HKJC import; there is no manual create action. On the 賭球 page, click
+`匯入 HKJC` and choose `acctstmt.html` from the HKJC 8-day account statement.
 
 - The file is parsed locally in the browser. The raw HTML is never uploaded; only the parsed JSON is posted.
-- The preview lets you edit each row's result. A payout of 0 defaults to pending (待定, shown as
-  `未開`), and the `未派彩全部設為輸` bulk action marks every no-payout row as a loss.
+- The preview lets you edit each row's result. A payout of 0 imports as a loss (輸) by default;
+  change it in the preview if the bet is still pending.
 - Early-payout (派彩快) rows whose payout does not match the normal odds formula are imported as
   `cash_out`; their result is locked and their actual P/L (`payout − stake`) is stored. Cash-out bets
   appear as `派彩快` in the slip list and are read-only there (delete and re-import to change them).

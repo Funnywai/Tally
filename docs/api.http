@@ -105,11 +105,11 @@ Content-Type: application/json
 
 { "result": "win" }
 
-### Bet overview (today/month profit, pending count and stake)
+### Bet overview (today/last 30 days/last 90 days profit, pending count and stake)
 GET {{baseUrl}}/api/bets/overview
 
-### Bet stats (period: month, year, all; defaults to month)
-GET {{baseUrl}}/api/bets/stats?period=month
+### Bet stats (period: last30, year, all; defaults to last30)
+GET {{baseUrl}}/api/bets/stats?period=last30
 
 ### Delete a bet (legs cascade)
 DELETE {{baseUrl}}/api/bets/{{betId}}
