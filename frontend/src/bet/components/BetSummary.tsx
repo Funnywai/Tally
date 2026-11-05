@@ -1,4 +1,4 @@
-import { formatBetMoney, formatStake } from '../lib/format';
+import { formatBetMoney } from '../lib/format';
 import type { BetOverview } from '../types';
 import { BetRefreshIcon } from './BetIcons';
 
@@ -20,35 +20,29 @@ export function BetSummary({
   readonly error: string | null;
   readonly onRetry: () => void;
 }) {
-  const today = overview?.today;
-  const month = overview?.month;
-  const pending = overview?.pending;
+  const last30Days = overview?.last30Days;
+  const last90Days = overview?.last90Days;
 
   return (
     <section className="bet-summary" aria-label="投注摘要" aria-busy={loading}>
       <div className="bet-summary__cell">
-        <span className="bet-summary__label">今日輸贏</span>
+        <span className="bet-summary__label">近 30 日輸贏</span>
         <span
-          className={`bet-summary__value ${today === undefined ? 'is-zero' : toneOf(today.profit)}`}
+          className={`bet-summary__value ${
+            last30Days === undefined ? 'is-zero' : toneOf(last30Days.profit)
+          }`}
         >
-          {today === undefined ? '—' : formatBetMoney(today.profit)}
+          {last30Days === undefined ? '—' : formatBetMoney(last30Days.profit)}
         </span>
       </div>
       <div className="bet-summary__cell">
-        <span className="bet-summary__label">本月輸贏</span>
+        <span className="bet-summary__label">近 90 日輸贏</span>
         <span
-          className={`bet-summary__value ${month === undefined ? 'is-zero' : toneOf(month.profit)}`}
+          className={`bet-summary__value ${
+            last90Days === undefined ? 'is-zero' : toneOf(last90Days.profit)
+          }`}
         >
-          {month === undefined ? '—' : formatBetMoney(month.profit)}
-        </span>
-      </div>
-      <div className="bet-summary__cell">
-        <span className="bet-summary__label">待結算</span>
-        <span className="bet-summary__value is-pending">
-          {pending === undefined ? '—' : `${pending.count} 注`}
-        </span>
-        <span className="bet-summary__meta">
-          {pending === undefined ? '' : formatStake(pending.stake)}
+          {last90Days === undefined ? '—' : formatBetMoney(last90Days.profit)}
         </span>
       </div>
       {error === null ? null : (

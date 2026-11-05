@@ -14,13 +14,13 @@ import {
 import type { BetPeriod, BetStats } from '../types';
 
 const PERIODS: readonly { id: BetPeriod; label: string }[] = [
-  { id: 'month', label: '本月' },
+  { id: 'last30', label: '近30日' },
   { id: 'year', label: '今年' },
   { id: 'all', label: '全部' },
 ];
 
 function periodLabel(period: BetPeriod): string {
-  return period === 'month' ? '本月' : period === 'year' ? '今年' : '全部';
+  return period === 'last30' ? '近30日' : period === 'year' ? '今年' : '全部';
 }
 
 function Kpi({
@@ -189,7 +189,7 @@ function StatsContent({ stats }: { readonly stats: BetStats }) {
 }
 
 export function StatsPage() {
-  const [period, setPeriod] = useState<BetPeriod>('month');
+  const [period, setPeriod] = useState<BetPeriod>('last30');
   const stats = useAsync<BetStats>(`bet-stats|${period}`, () => fetchBetStats(period));
 
   return (
