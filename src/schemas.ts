@@ -123,7 +123,17 @@ function betTextSchema(max: number, message: string) {
     .refine((value) => !hasControlChar(value), { message: '不可包含控制字元' });
 }
 
-export const betMarketSchema = z.enum(['1x2', 'handicap', 'totals', 'other']);
+export const betMarketSchema = z.enum([
+  '1x2',
+  'handicap',
+  'totals',
+  'other',
+  'same_game',
+  'anytime_scorer',
+  'correct_score',
+  'corner_totals',
+  'corners',
+]);
 export const betResultSchema = z.enum([
   'pending',
   'win',
@@ -271,7 +281,7 @@ export const listBetsQuerySchema = z.object({
 });
 
 export const betStatsQuerySchema = z.object({
-  period: z.enum(['month', 'year', 'all']).default('month'),
+  period: z.enum(['last30', 'year', 'all']).default('last30'),
 });
 
 export const betIdSchema = z.uuid();

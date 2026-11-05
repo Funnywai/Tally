@@ -3,7 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { hkToday } from '../../src/time.js';
 import { closeTestDb, createTestApp, resetDb } from '../helpers/app.js';
-import { createBet, currentMonthOtherDay, monthDate, singleLeg } from '../helpers/bets.js';
+import { createBet, currentMonthOtherDay, daysAgo, monthDate, singleLeg } from '../helpers/bets.js';
 import { login } from '../helpers/records.js';
 
 async function seed(app: Express, cookie: string): Promise<void> {
@@ -53,6 +53,45 @@ async function seed(app: Express, cookie: string): Promise<void> {
   });
 }
 
+async function seedRolling(app: Express, cookie: string): Promise<void> {
+  await createBet(app, cookie, {
+    date: hkToday(),
+    stake: 500,
+    result: 'win',
+    legs: [singleLeg({ odds: 1.95 })],
+  });
+  await createBet(app, cookie, {
+    date: daysAgo(5),
+    stake: 200,
+    result: 'pending',
+    legs: [singleLeg({ odds: 2 }), singleLeg({ odds: 1.5 })],
+  });
+  await createBet(app, cookie, {
+    date: daysAgo(10),
+    stake: 100,
+    result: 'loss',
+    legs: [singleLeg({ market: '1x2', selection: '和', odds: 2 })],
+  });
+  await createBet(app, cookie, {
+    date: daysAgo(15),
+    stake: 50,
+    result: 'push',
+    legs: [singleLeg({ market: 'totals', selection: '大 2.5', odds: 1.9 })],
+  });
+  await createBet(app, cookie, {
+    date: daysAgo(20),
+    stake: 200,
+    result: 'half_win',
+    legs: [singleLeg({ odds: 1.5 }), singleLeg({ odds: 2 })],
+  });
+  await createBet(app, cookie, {
+    date: daysAgo(40),
+    stake: 300,
+    result: 'win',
+    legs: [singleLeg({ odds: 2 })],
+  });
+}
+
 beforeEach(async () => {
   await resetDb();
 });
@@ -62,16 +101,17 @@ afterAll(async () => {
 });
 
 describe('bets overview', () => {
-  it('returns today, current month, and all pending totals', async () => {
+  it('returns today, last 30 days, last 90 days, and all pending totals', async () => {
     const { app } = await createTestApp();
     const cookie = await login(app);
-    await seed(app, cookie);
+    await seedRolling(app, cookie);
 
     const response = await request(app).get('/api/bets/overview').set('Cookie', cookie);
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       today: { profit: 475, settledStake: 500, settledBets: 1, pendingBets: 0 },
-      month: { profit: 575, settledStake: 850, settledBets: 4, pendingBets: 1 },
+      last30Days: { profit: 575, settledStake: 850, settledBets: 4, pendingBets: 1 },
+      last90Days: { profit: 875, settledStake: 1150, settledBets: 5, pendingBets: 1 },
       pending: { count: 1, stake: 200 },
     });
   });
@@ -82,22 +122,23 @@ describe('bets overview', () => {
     const response = await request(app).get('/api/bets/overview').set('Cookie', cookie);
     expect(response.body).toEqual({
       today: { profit: 0, settledStake: 0, settledBets: 0, pendingBets: 0 },
-      month: { profit: 0, settledStake: 0, settledBets: 0, pendingBets: 0 },
+      last30Days: { profit: 0, settledStake: 0, settledBets: 0, pendingBets: 0 },
+      last90Days: { profit: 0, settledStake: 0, settledBets: 0, pendingBets: 0 },
       pending: { count: 0, stake: 0 },
     });
   });
 });
 
 describe('bets stats', () => {
-  it('computes the current month', async () => {
+  it('computes the last 30 days', async () => {
     const { app } = await createTestApp();
     const cookie = await login(app);
-    await seed(app, cookie);
+    await seedRolling(app, cookie);
 
-    const response = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    const response = await request(app).get('/api/bets/stats?period=last30').set('Cookie', cookie);
 
     expect(response.status).toBe(200);
-    expect(response.body.period).toBe('month');
+    expect(response.body.period).toBe('last30');
     expect(response.body.totals).toEqual({
       settledStake: 850,
       profit: 575,
@@ -119,10 +160,7 @@ describe('bets stats', () => {
       { market: 'totals', bets: 1, stake: 50, profit: 0, roi: 0 },
     ]);
     expect(response.body.monthly).toHaveLength(6);
-    expect(response.body.monthly.at(-1)).toEqual({
-      month: hkToday().slice(0, 7),
-      profit: 575,
-    });
+    expect(response.body.monthly.at(-1)?.month).toBe(hkToday().slice(0, 7));
     expect(response.body.biggestWin).toMatchObject({ profit: 475, date: hkToday() });
     expect(response.body.biggestLoss).toMatchObject({ profit: -100 });
   });

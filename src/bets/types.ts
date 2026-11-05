@@ -1,7 +1,16 @@
 export type BetResult = 'pending' | 'win' | 'half_win' | 'push' | 'half_loss' | 'loss' | 'cash_out';
-export type BetMarket = '1x2' | 'handicap' | 'totals' | 'other';
+export type BetMarket =
+  | '1x2'
+  | 'handicap'
+  | 'totals'
+  | 'other'
+  | 'same_game'
+  | 'anytime_scorer'
+  | 'correct_score'
+  | 'corner_totals'
+  | 'corners';
 export type BetStatusFilter = 'all' | 'pending' | 'settled';
-export type BetPeriod = 'month' | 'year' | 'all';
+export type BetPeriod = 'last30' | 'year' | 'all';
 
 export interface BetLegInput {
   readonly match: string;
@@ -76,7 +85,8 @@ export interface BetOverviewDay {
 
 export interface BetOverview {
   readonly today: BetOverviewDay;
-  readonly month: BetOverviewDay;
+  readonly last30Days: BetOverviewDay;
+  readonly last90Days: BetOverviewDay;
   readonly pending: { readonly count: number; readonly stake: number };
 }
 

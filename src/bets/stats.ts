@@ -18,7 +18,12 @@ function emptyOverviewDay(): BetOverviewDay {
 }
 
 function emptyOverview(): BetOverview {
-  return { today: emptyOverviewDay(), month: emptyOverviewDay(), pending: { count: 0, stake: 0 } };
+  return {
+    today: emptyOverviewDay(),
+    last30Days: emptyOverviewDay(),
+    last90Days: emptyOverviewDay(),
+    pending: { count: 0, stake: 0 },
+  };
 }
 
 function toNumber(value: string | null): number {
@@ -31,9 +36,9 @@ function ratio(numerator: number, denominator: number): number | null {
 
 function periodClause(period: BetPeriod): string {
   switch (period) {
-    case 'month':
-      return `b.bet_date >= date_trunc('month', current_date)::date
-              and b.bet_date < (date_trunc('month', current_date) + interval '1 month')::date`;
+    case 'last30':
+      return `b.bet_date >= current_date - interval '29 days'
+              and b.bet_date <= current_date`;
     case 'year':
       return `b.bet_date >= date_trunc('year', current_date)::date
               and b.bet_date < (date_trunc('year', current_date) + interval '1 year')::date`;
@@ -51,10 +56,14 @@ interface OverviewRow {
   readonly today_stake: string;
   readonly today_settled: number;
   readonly today_pending: number;
-  readonly month_profit: string;
-  readonly month_stake: string;
-  readonly month_settled: number;
-  readonly month_pending: number;
+  readonly last_30_days_profit: string;
+  readonly last_30_days_stake: string;
+  readonly last_30_days_settled: number;
+  readonly last_30_days_pending: number;
+  readonly last_90_days_profit: string;
+  readonly last_90_days_stake: string;
+  readonly last_90_days_settled: number;
+  readonly last_90_days_pending: number;
   readonly pending_count: number;
   readonly pending_stake: string;
 }
@@ -75,25 +84,45 @@ export async function getOverview(pool: Pool): Promise<BetOverview> {
          where bet_date = current_date and result = 'pending'
        )::int as today_pending,
        coalesce(sum(profit) filter (
-         where bet_date >= date_trunc('month', current_date)::date
-           and bet_date < (date_trunc('month', current_date) + interval '1 month')::date
+         where bet_date >= current_date - interval '29 days'
+           and bet_date <= current_date
            and result <> 'pending'
-       ), 0)::text as month_profit,
+       ), 0)::text as last_30_days_profit,
        coalesce(sum(stake) filter (
-         where bet_date >= date_trunc('month', current_date)::date
-           and bet_date < (date_trunc('month', current_date) + interval '1 month')::date
+         where bet_date >= current_date - interval '29 days'
+           and bet_date <= current_date
            and result <> 'pending'
-       ), 0)::text as month_stake,
+       ), 0)::text as last_30_days_stake,
        count(*) filter (
-         where bet_date >= date_trunc('month', current_date)::date
-           and bet_date < (date_trunc('month', current_date) + interval '1 month')::date
+         where bet_date >= current_date - interval '29 days'
+           and bet_date <= current_date
            and result <> 'pending'
-       )::int as month_settled,
+       )::int as last_30_days_settled,
        count(*) filter (
-         where bet_date >= date_trunc('month', current_date)::date
-           and bet_date < (date_trunc('month', current_date) + interval '1 month')::date
+         where bet_date >= current_date - interval '29 days'
+           and bet_date <= current_date
            and result = 'pending'
-       )::int as month_pending,
+       )::int as last_30_days_pending,
+       coalesce(sum(profit) filter (
+         where bet_date >= current_date - interval '89 days'
+           and bet_date <= current_date
+           and result <> 'pending'
+       ), 0)::text as last_90_days_profit,
+       coalesce(sum(stake) filter (
+         where bet_date >= current_date - interval '89 days'
+           and bet_date <= current_date
+           and result <> 'pending'
+       ), 0)::text as last_90_days_stake,
+       count(*) filter (
+         where bet_date >= current_date - interval '89 days'
+           and bet_date <= current_date
+           and result <> 'pending'
+       )::int as last_90_days_settled,
+       count(*) filter (
+         where bet_date >= current_date - interval '89 days'
+           and bet_date <= current_date
+           and result = 'pending'
+       )::int as last_90_days_pending,
        count(*) filter (where result = 'pending')::int as pending_count,
        coalesce(sum(stake) filter (where result = 'pending'), 0)::text as pending_stake
      from bets`,
@@ -111,11 +140,17 @@ export async function getOverview(pool: Pool): Promise<BetOverview> {
       settledBets: row.today_settled,
       pendingBets: row.today_pending,
     },
-    month: {
-      profit: round2(toNumber(row.month_profit)),
-      settledStake: round2(toNumber(row.month_stake)),
-      settledBets: row.month_settled,
-      pendingBets: row.month_pending,
+    last30Days: {
+      profit: round2(toNumber(row.last_30_days_profit)),
+      settledStake: round2(toNumber(row.last_30_days_stake)),
+      settledBets: row.last_30_days_settled,
+      pendingBets: row.last_30_days_pending,
+    },
+    last90Days: {
+      profit: round2(toNumber(row.last_90_days_profit)),
+      settledStake: round2(toNumber(row.last_90_days_stake)),
+      settledBets: row.last_90_days_settled,
+      pendingBets: row.last_90_days_pending,
     },
     pending: {
       count: row.pending_count,

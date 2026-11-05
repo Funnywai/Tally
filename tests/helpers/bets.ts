@@ -46,3 +46,9 @@ export function monthDate(monthsAgo: number, day = 10): string {
 export function currentMonthOtherDay(): string {
   return hkToday().endsWith('-01') ? monthDate(0, 2) : monthDate(0, 1);
 }
+
+export function daysAgo(days: number): string {
+  const date = new Date(`${hkToday()}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}

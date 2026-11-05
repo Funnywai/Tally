@@ -366,7 +366,7 @@ describe('cash_out import', () => {
       profit: 7.3,
     });
 
-    const stats = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    const stats = await request(app).get('/api/bets/stats?period=last30').set('Cookie', cookie);
     expect(stats.status).toBe(200);
     expect(stats.body.totals).toEqual({
       settledStake: 10,
@@ -401,7 +401,13 @@ describe('cash_out import', () => {
       settledBets: 1,
       pendingBets: 0,
     });
-    expect(overview.body.month).toEqual({
+    expect(overview.body.last30Days).toEqual({
+      profit: 7.3,
+      settledStake: 10,
+      settledBets: 1,
+      pendingBets: 0,
+    });
+    expect(overview.body.last90Days).toEqual({
       profit: 7.3,
       settledStake: 10,
       settledBets: 1,
@@ -434,7 +440,7 @@ describe('cash_out import', () => {
       profit: -9.9,
     });
 
-    const stats = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    const stats = await request(app).get('/api/bets/stats?period=last30').set('Cookie', cookie);
     expect(stats.body.totals).toEqual({
       settledStake: 10,
       profit: -9.9,
@@ -451,7 +457,8 @@ describe('cash_out import', () => {
 
     const overview = await request(app).get('/api/bets/overview').set('Cookie', cookie);
     expect(overview.body.today.profit).toBe(-9.9);
-    expect(overview.body.month.profit).toBe(-9.9);
+    expect(overview.body.last30Days.profit).toBe(-9.9);
+    expect(overview.body.last90Days.profit).toBe(-9.9);
 
     expect(await betByExternalId('hkjc-cashout-loss')).toMatchObject({
       result: 'cash_out',
@@ -500,7 +507,7 @@ describe('cash_out import', () => {
     const list = await request(app).get('/api/bets').set('Cookie', cookie);
     expect(list.body.items[0].profit).toBe(100);
 
-    const stats = await request(app).get('/api/bets/stats?period=month').set('Cookie', cookie);
+    const stats = await request(app).get('/api/bets/stats?period=last30').set('Cookie', cookie);
     expect(stats.body.totals.profit).toBe(100);
     expect(stats.body.totals.wins).toBe(1);
 
