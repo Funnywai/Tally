@@ -76,10 +76,10 @@ Contrast rules: text ≥ 4.5:1 on its surface; UI boundaries ≥ 3:1; never rely
 - **CTA**: full-width midnight-blue pill/square with ice rim, `匯入 HKJC`; HKJC import is the only add path.
 - **Buttons**: primary = midnight-blue fill + ice border + `--bet-action-ink` text; danger = `--bet-loss` fill + `--bet-accent-ink` text (high contrast, clears the 4.5:1 body-text rule); ghost/outline keep token borders.
 - **Filters**: 全部 / 待結算 / 已結算; selected uses midnight fill, ice border, and `--bet-action-ink` text.
-- **Bet card**: type badge, record time, result badge; numbered legs `01/02`; dotted separators; stake / total odds / profit footer; pending card has a `結算` text action. Imported `cash_out` cards show a `派彩快` badge and actual P/L, are read-only, and have a delete action.
+- **Bet card**: type badge, record time, result badge; numbered legs `01/02`; dotted separators; stake / total odds / profit footer; pending card has a `結算` text action. Imported `cash_out` cards show a `派彩快` badge and actual P/L, open the edit form, and have a delete action.
 - **Sheet**: full-screen for the bet form; bottom sheet for confirmation. Native `<dialog>` + focus trap + Escape.
 - **HKJC import sheet**: full-screen sheet with a file picker and local-only privacy note; summary counts for importable, duplicate, and warning rows; preview cards with an editable result select and a `已存在` duplicate badge; cash-out rows show `派彩快` + actual P/L with a locked result; no-payout rows default to 輸; sticky footer with cancel/import.
-- **Form**: edit/settle only; date, leg fieldsets, market chips, result chips, total-odds readout, profit preview, sticky footer.
+- **Form**: edit/settle only; date, leg fieldsets, market chips, result chips (including `派彩快`), conditional 派彩金額 input, total-odds readout, profit preview, sticky footer.
 - **Stats**: last30/year/all period segmented control, hero P/L, 2×2 KPI, type rows, market diverging bars, 6-month CSS column chart, biggest win/loss cards.
 - **States**: `.bet-empty`, `.bet-inline-error`, `.bet-skeleton*`, `.bet-toast*`, `.bet-banner`.
 

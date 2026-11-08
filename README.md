@@ -433,8 +433,8 @@ Bets are added only through HKJC import; there is no manual create action. On th
 - The preview lets you edit each row's result. A payout of 0 imports as a loss (輸) by default;
   change it in the preview if the bet is still pending.
 - Early-payout (派彩快) rows whose payout does not match the normal odds formula are imported as
-  `cash_out`; their result is locked and their actual P/L (`payout − stake`) is stored. Cash-out bets
-  appear as `派彩快` in the slip list and are read-only there (delete and re-import to change them).
+  `cash_out`; their actual P/L (`payout − stake`) is stored. Cash-out bets appear as `派彩快` in the
+  slip list and can be edited: the form asks for the 派彩金額 and stores `payout − stake` as profit.
 - Duplicate `externalId`s are checked with a dry run and skipped. The server import is idempotent, so
   reruns are safe.
 - Limits: 8 days per HKJC export, 200 rows per import, and a 256 KB JSON body limit for the import

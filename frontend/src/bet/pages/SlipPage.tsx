@@ -223,10 +223,6 @@ export function SlipPage({
                 key={bet.id}
                 bet={bet}
                 onEdit={() => {
-                  if (bet.result === 'cash_out') {
-                    onNotify('派彩快注單由匯入建立，請刪除後重新匯入', 'info');
-                    return;
-                  }
                   setSaveError(null);
                   setEditing(bet);
                 }}

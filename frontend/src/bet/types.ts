@@ -112,6 +112,7 @@ export interface BetPayload {
   readonly stake: number;
   readonly result: BetResult;
   readonly legs: BetLegPayload[];
+  readonly profitOverride?: number;
 }
 
 export interface HkjcImportRow {
@@ -173,4 +174,5 @@ export interface BetDraft {
   readonly stake: string;
   readonly result: BetResult;
   readonly legs: BetDraftLeg[];
+  readonly payout: string;
 }

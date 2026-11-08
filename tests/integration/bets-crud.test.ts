@@ -1,9 +1,40 @@
+import type { Express } from 'express';
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { hkToday } from '../../src/time.js';
 import { closeTestDb, createTestApp, getTestDb, resetDb } from '../helpers/app.js';
 import { createBet, singleLeg } from '../helpers/bets.js';
 import { login } from '../helpers/records.js';
+
+async function importCashOutBet(app: Express, cookie: string, externalId: string): Promise<string> {
+  const imported = await request(app)
+    .post('/api/bets/import')
+    .set('Cookie', cookie)
+    .send({
+      bets: [
+        {
+          externalId,
+          date: '2026-10-26',
+          stake: 10,
+          result: 'cash_out',
+          profitOverride: 7.3,
+          legs: [singleLeg({ odds: 9.24 })],
+        },
+      ],
+    });
+  expect(imported.status).toBe(200);
+  expect(imported.body.imported).toBe(1);
+
+  const db = await getTestDb();
+  const row = await db.pool.query<{ id: string }>('select id from bets where external_id = $1', [
+    externalId,
+  ]);
+  const id = row.rows[0]?.id;
+  if (id === undefined) {
+    throw new Error('imported cash_out bet missing');
+  }
+  return id;
+}
 
 beforeEach(async () => {
   await resetDb();
@@ -250,5 +281,150 @@ describe('bets CRUD', () => {
       expect(response.status).toBe(400);
       expect(response.body.error.code).toBe('VALIDATION');
     }
+  });
+
+  it('patches a bet to cash_out with an explicit profit override', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const bet = await createBet(app, cookie, {
+      date: '2026-10-26',
+      stake: 500,
+      legs: [singleLeg()],
+    });
+
+    const patched = await request(app)
+      .patch(`/api/bets/${bet.id}`)
+      .set('Cookie', cookie)
+      .send({ result: 'cash_out', profitOverride: 123.456 });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body).toMatchObject({
+      date: '2026-10-26',
+      stake: 500,
+      totalOdds: 1.95,
+      result: 'cash_out',
+      profit: 123.46,
+    });
+  });
+
+  it('patches an imported cash_out bet date, stake, legs, and profit amount', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const id = await importCashOutBet(app, cookie, 'hkjc-cashout-patch-all');
+
+    const patched = await request(app)
+      .patch(`/api/bets/${id}`)
+      .set('Cookie', cookie)
+      .send({
+        date: '2026-10-30',
+        stake: 20,
+        legs: [singleLeg({ match: '新賽事', odds: 2 })],
+        profitOverride: -5.55,
+      });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body).toMatchObject({
+      date: '2026-10-30',
+      stake: 20,
+      totalOdds: 2,
+      result: 'cash_out',
+      profit: -5.55,
+    });
+    expect(patched.body.legs).toEqual([
+      {
+        position: 1,
+        match: '新賽事',
+        market: 'handicap',
+        selection: '曼聯 -0.5',
+        odds: 2,
+      },
+    ]);
+
+    const amountOnly = await request(app)
+      .patch(`/api/bets/${id}`)
+      .set('Cookie', cookie)
+      .send({ profitOverride: 3 });
+    expect(amountOnly.status).toBe(200);
+    expect(amountOnly.body).toMatchObject({ result: 'cash_out', stake: 20, profit: 3 });
+
+    const db = await getTestDb();
+    const row = await db.pool.query<{ profit: string }>(
+      'select profit::text from bets where id = $1',
+      [id],
+    );
+    expect(row.rows[0]?.profit).toBe('3.00');
+  });
+
+  it('rejects a patch to cash_out without a profit override', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const bet = await createBet(app, cookie, { stake: 500, legs: [singleLeg()] });
+
+    const patched = await request(app)
+      .patch(`/api/bets/${bet.id}`)
+      .set('Cookie', cookie)
+      .send({ result: 'cash_out' });
+
+    expect(patched.status).toBe(400);
+    expect(patched.body.error.code).toBe('VALIDATION');
+  });
+
+  it('rejects a profit override when the result is not cash_out', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const bet = await createBet(app, cookie, { stake: 500, legs: [singleLeg()] });
+
+    const explicitResult = await request(app)
+      .patch(`/api/bets/${bet.id}`)
+      .set('Cookie', cookie)
+      .send({ result: 'win', profitOverride: 5 });
+    expect(explicitResult.status).toBe(400);
+    expect(explicitResult.body.error.code).toBe('VALIDATION');
+
+    const overrideOnly = await request(app)
+      .patch(`/api/bets/${bet.id}`)
+      .set('Cookie', cookie)
+      .send({ profitOverride: 5 });
+    expect(overrideOnly.status).toBe(400);
+    expect(overrideOnly.body.error.code).toBe('VALIDATION');
+  });
+
+  it('patches a cash_out bet back to win and recomputes profit', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const id = await importCashOutBet(app, cookie, 'hkjc-cashout-to-win');
+
+    const patched = await request(app)
+      .patch(`/api/bets/${id}`)
+      .set('Cookie', cookie)
+      .send({ result: 'win' });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body).toMatchObject({
+      result: 'win',
+      stake: 10,
+      totalOdds: 9.24,
+      profit: 82.4,
+    });
+  });
+
+  it('keeps cash_out profit on a date-only patch', async () => {
+    const { app } = await createTestApp();
+    const cookie = await login(app);
+    const id = await importCashOutBet(app, cookie, 'hkjc-cashout-date-only');
+
+    const patched = await request(app)
+      .patch(`/api/bets/${id}`)
+      .set('Cookie', cookie)
+      .send({ date: '2026-11-01' });
+
+    expect(patched.status).toBe(200);
+    expect(patched.body).toMatchObject({
+      date: '2026-11-01',
+      result: 'cash_out',
+      stake: 10,
+      totalOdds: 9.24,
+      profit: 7.3,
+    });
   });
 });

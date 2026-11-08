@@ -35,7 +35,7 @@ export function BetCard({
         type="button"
         className="bet-card__main"
         onClick={onEdit}
-        aria-label={isCashOut ? '派彩快注單' : '編輯注單'}
+        aria-label={isCashOut ? '編輯派彩快注單' : '編輯注單'}
       >
         <span className="bet-card__top">
           <span className="bet-type">{betTypeLabel(bet.legs.length)}</span>

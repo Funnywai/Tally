@@ -576,33 +576,38 @@ describe('cash_out import', () => {
     });
   });
 
-  it('rejects stake, result, and leg patches on a cash-out bet', async () => {
+  it('allows stake, leg, and date patches on a cash-out bet and keeps the imported profit', async () => {
     const { app } = await createTestApp();
     const cookie = await login(app);
-    await importCashOut(app, cookie, 'hkjc-cashout-locked');
-    const before = await betByExternalId('hkjc-cashout-locked');
+    await importCashOut(app, cookie, 'hkjc-cashout-patchable');
+    const before = await betByExternalId('hkjc-cashout-patchable');
     expect(before).not.toBeNull();
 
-    const patches = [
-      { stake: 20 },
-      { result: 'win' },
-      { legs: [singleLeg({ odds: 2 })] },
-      { date: '2026-10-31', stake: 20 },
-    ];
+    const stakePatch = await request(app)
+      .patch(`/api/bets/${before?.id ?? ''}`)
+      .set('Cookie', cookie)
+      .send({ stake: 20 });
+    expect(stakePatch.status).toBe(200);
+    expect(stakePatch.body).toMatchObject({ result: 'cash_out', stake: 20, profit: 7.3 });
 
-    for (const patch of patches) {
-      const response = await request(app)
-        .patch(`/api/bets/${before?.id ?? ''}`)
-        .set('Cookie', cookie)
-        .send(patch);
-      expect(response.status).toBe(400);
-      expect(response.body.error.code).toBe('VALIDATION');
-    }
+    const legsPatch = await request(app)
+      .patch(`/api/bets/${before?.id ?? ''}`)
+      .set('Cookie', cookie)
+      .send({ legs: [singleLeg({ odds: 2 })] });
+    expect(legsPatch.status).toBe(200);
+    expect(legsPatch.body).toMatchObject({ result: 'cash_out', totalOdds: 2, profit: 7.3 });
 
-    expect(await betByExternalId('hkjc-cashout-locked')).toMatchObject({
+    const datePatch = await request(app)
+      .patch(`/api/bets/${before?.id ?? ''}`)
+      .set('Cookie', cookie)
+      .send({ date: '2026-10-31', stake: 20 });
+    expect(datePatch.status).toBe(200);
+    expect(datePatch.body).toMatchObject({ date: '2026-10-31', result: 'cash_out', profit: 7.3 });
+
+    expect(await betByExternalId('hkjc-cashout-patchable')).toMatchObject({
       result: 'cash_out',
       profit: '7.30',
-      total_odds: '9.24',
+      total_odds: '2.00',
     });
   });
 

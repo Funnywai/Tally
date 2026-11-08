@@ -1,7 +1,7 @@
 import { type FormEvent, useId, useState } from 'react';
 import { parseDraft } from '../lib/form';
 import { formatBetMoney, formatStake } from '../lib/format';
-import { computePotentialReturn, computeProfit } from '../lib/profit';
+import { computePotentialReturn, computeProfit, round2 } from '../lib/profit';
 import type { BetDraft, BetMarket, BetPayload, BetResult } from '../types';
 import { BetLoaderIcon, BetPlusIcon, BetTrashIcon } from './BetIcons';
 import { BetSheet } from './BetSheet';
@@ -25,6 +25,7 @@ const RESULTS: readonly { id: BetResult; label: string }[] = [
   { id: 'push', label: '走水' },
   { id: 'half_loss', label: '半輸' },
   { id: 'loss', label: '輸' },
+  { id: 'cash_out', label: '派彩快' },
 ];
 
 interface BetFormProps {
@@ -96,6 +97,11 @@ export function BetForm({ initial, saving, error, onClose, onSave, onDelete }: B
     parsed.totalOdds !== null && validStake
       ? computeProfit(stakeValue, parsed.totalOdds, draft.result)
       : null;
+  const cashOutProfit =
+    draft.result === 'cash_out' && parsed.errors.payout === undefined && validStake
+      ? round2(Number(draft.payout) - round2(stakeValue))
+      : null;
+  const previewAmount = draft.result === 'cash_out' ? cashOutProfit : previewProfit;
   const potentialReturn =
     parsed.totalOdds !== null && validStake
       ? computePotentialReturn(stakeValue, parsed.totalOdds)
@@ -300,6 +306,24 @@ export function BetForm({ initial, saving, error, onClose, onSave, onDelete }: B
           </fieldset>
         </div>
 
+        {draft.result === 'cash_out' ? (
+          <label className="bet-field">
+            <span className="bet-field__label">派彩金額</span>
+            <input
+              className="bet-field__input bet-field__input--number"
+              value={draft.payout}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, payout: event.target.value }))
+              }
+              placeholder="0.00"
+              inputMode="decimal"
+              autoComplete="off"
+              {...invalidProps(parsed.errors.payout, 'payout')}
+            />
+            {showError(parsed.errors.payout, 'payout')}
+          </label>
+        ) : null}
+
         <div className="bet-preview" aria-live="polite">
           <span className="bet-preview__label">
             {draft.result === 'pending' ? '待結算' : '輸贏預覽'}
@@ -308,9 +332,9 @@ export function BetForm({ initial, saving, error, onClose, onSave, onDelete }: B
             className={`bet-preview__value ${
               draft.result === 'pending'
                 ? 'is-pending'
-                : previewProfit !== null && previewProfit > 0
+                : previewAmount !== null && previewAmount > 0
                   ? 'is-win'
-                  : previewProfit !== null && previewProfit < 0
+                  : previewAmount !== null && previewAmount < 0
                     ? 'is-loss'
                     : 'is-zero'
             }`}
@@ -319,9 +343,9 @@ export function BetForm({ initial, saving, error, onClose, onSave, onDelete }: B
               ? potentialReturn === null
                 ? '—'
                 : `潛在回報 ${formatStake(potentialReturn)}`
-              : previewProfit === null
+              : previewAmount === null
                 ? '—'
-                : formatBetMoney(previewProfit)}
+                : formatBetMoney(previewAmount)}
           </span>
         </div>
       </form>

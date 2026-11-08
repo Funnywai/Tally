@@ -254,15 +254,18 @@ export const patchBetSchema = z
   .object({
     date: dateSchema.optional(),
     stake: betStakeSchema.optional(),
-    result: manualBetResultSchema.optional(),
+    result: betResultSchema.optional(),
     legs: z.array(betLegSchema).min(1).max(8).optional(),
+    profitOverride: betProfitOverrideSchema.nullable().optional(),
   })
   .superRefine((value, ctx) => {
+    const hasOverride = value.profitOverride !== null && value.profitOverride !== undefined;
     if (
       value.date === undefined &&
       value.stake === undefined &&
       value.result === undefined &&
-      value.legs === undefined
+      value.legs === undefined &&
+      !hasOverride
     ) {
       ctx.addIssue({ code: 'custom', message: '至少需要提供一個欄位' });
     }
@@ -271,6 +274,23 @@ export const patchBetSchema = z
       if (issue !== null) {
         ctx.addIssue({ code: 'custom', path: ['legs'], message: issue.message });
       }
+    }
+    if (value.result === 'cash_out') {
+      if (!hasOverride) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['profitOverride'],
+          message: '派彩快注單需要提供實際盈虧',
+        });
+      }
+      return;
+    }
+    if (value.result !== undefined && hasOverride) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['profitOverride'],
+        message: '只有派彩快注單可提供實際盈虧',
+      });
     }
   });
 

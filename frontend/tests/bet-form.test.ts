@@ -120,6 +120,120 @@ describe('bet draft validation', () => {
           odds: '1.95',
         },
       ],
+      payout: '',
     });
+  });
+
+  it('prefills the payout from a cash-out bet', () => {
+    const bet: BetItem = {
+      id: 'id',
+      date: '2026-10-26',
+      recordedAt: '2026-10-26T12:00:00.000Z',
+      stake: 100,
+      result: 'cash_out',
+      legs: [
+        {
+          position: 1,
+          match: '曼聯 vs 車路士',
+          market: 'handicap',
+          selection: '曼聯 -0.5',
+          odds: 1.95,
+        },
+      ],
+      totalOdds: 1.95,
+      profit: 40,
+    };
+    expect(draftFromBet(bet).payout).toBe('140');
+  });
+
+  it('builds a cash-out payload with a profit override', () => {
+    const draft = {
+      ...emptyDraft('2026-10-26'),
+      stake: '100',
+      result: 'cash_out' as const,
+      payout: '140',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    };
+    const parsed = parseDraft(draft);
+    expect(parsed.errors.payout).toBeUndefined();
+    expect(parsed.payload).toEqual({
+      date: '2026-10-26',
+      stake: 100,
+      result: 'cash_out',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2', selection: '主', odds: 1.95 }],
+      profitOverride: 40,
+    });
+  });
+
+  it('rejects an empty cash-out payout', () => {
+    const draft = {
+      ...emptyDraft('2026-10-26'),
+      stake: '100',
+      result: 'cash_out' as const,
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    };
+    const parsed = parseDraft(draft);
+    expect(parsed.payload).toBeNull();
+    expect(parsed.errors.payout).toBe('派彩金額必須是 0 或以上');
+  });
+
+  it('rejects a whitespace-only cash-out payout without coercing to zero', () => {
+    const parsed = parseDraft({
+      ...emptyDraft('2026-10-26'),
+      stake: '100',
+      result: 'cash_out',
+      payout: '   ',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    });
+    expect(parsed.payload).toBeNull();
+    expect(parsed.errors.payout).toBe('派彩金額必須是 0 或以上');
+  });
+
+  it('rejects a negative cash-out payout', () => {
+    const parsed = parseDraft({
+      ...emptyDraft('2026-10-26'),
+      stake: '100',
+      result: 'cash_out',
+      payout: '-5',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    });
+    expect(parsed.payload).toBeNull();
+    expect(parsed.errors.payout).toBe('派彩金額必須是 0 或以上');
+  });
+
+  it('accepts a zero cash-out payout', () => {
+    const parsed = parseDraft({
+      ...emptyDraft('2026-10-26'),
+      stake: '100',
+      result: 'cash_out',
+      payout: '0',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    });
+    expect(parsed.errors.payout).toBeUndefined();
+    expect(parsed.payload?.profitOverride).toBe(-100);
+  });
+
+  it('omits the profit override for non-cash-out results', () => {
+    const parsed = parseDraft({
+      ...emptyDraft('2026-10-26'),
+      stake: '100',
+      result: 'win',
+      payout: '999',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    });
+    expect(parsed.payload).not.toBeNull();
+    expect(parsed.payload).not.toHaveProperty('profitOverride');
+  });
+
+  it('computes the override from the rounded stake', () => {
+    const parsed = parseDraft({
+      ...emptyDraft('2026-10-26'),
+      stake: '100.005',
+      result: 'cash_out',
+      payout: '150',
+      legs: [{ match: '曼聯 vs 車路士', market: '1x2' as const, selection: '主', odds: '1.95' }],
+    });
+    expect(parsed.payload?.stake).toBe(100.01);
+    expect(parsed.payload?.profitOverride).toBe(49.99);
   });
 });

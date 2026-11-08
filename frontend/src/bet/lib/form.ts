@@ -21,6 +21,7 @@ export interface BetDraftErrors {
   readonly legs: BetDraftLegErrors[];
   readonly legsCount?: string;
   readonly totalOdds?: string;
+  readonly payout?: string;
 }
 
 export interface ParsedDraft {
@@ -35,6 +36,7 @@ export function emptyDraft(date: string): BetDraft {
     stake: '',
     result: 'pending',
     legs: [{ match: '', market: '1x2', selection: '', odds: '' }],
+    payout: '',
   };
 }
 
@@ -49,6 +51,7 @@ export function draftFromBet(bet: BetItem): BetDraft {
       selection: leg.selection,
       odds: String(leg.odds),
     })),
+    payout: bet.result === 'cash_out' ? String(round2(bet.stake + (bet.profit ?? 0))) : '',
   };
 }
 
@@ -101,20 +104,30 @@ export function parseDraft(draft: BetDraft): ParsedDraft {
       ? `總賠率不可超過 ${MAX_TOTAL_ODDS}`
       : undefined;
 
+  const isCashOut = draft.result === 'cash_out';
+  const roundedStake = round2(stake);
+  const payout = Number(draft.payout);
+  const payoutError =
+    isCashOut && (draft.payout.trim() === '' || !Number.isFinite(payout) || payout < 0)
+      ? '派彩金額必須是 0 或以上'
+      : undefined;
+
   const valid =
     dateError === undefined &&
     stakeError === undefined &&
     !hasLegErrors &&
     legsCountError === undefined &&
-    totalOddsError === undefined;
+    totalOddsError === undefined &&
+    payoutError === undefined;
 
   return {
     payload: valid
       ? {
           date: draft.date,
-          stake: round2(stake),
+          stake: roundedStake,
           result: draft.result,
           legs,
+          ...(isCashOut ? { profitOverride: round2(payout - roundedStake) } : {}),
         }
       : null,
     errors: {
@@ -123,6 +136,7 @@ export function parseDraft(draft: BetDraft): ParsedDraft {
       ...(stakeError !== undefined ? { stake: stakeError } : {}),
       ...(legsCountError !== undefined ? { legsCount: legsCountError } : {}),
       ...(totalOddsError !== undefined ? { totalOdds: totalOddsError } : {}),
+      ...(payoutError !== undefined ? { payout: payoutError } : {}),
     },
     totalOdds,
   };

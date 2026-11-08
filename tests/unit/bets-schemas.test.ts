@@ -204,8 +204,53 @@ describe('patchBetSchema', () => {
     expect(patchBetSchema.safeParse({}).success).toBe(false);
   });
 
-  it('rejects cash_out because only import may create it', () => {
+  it('accepts cash_out with a non-null profit override', () => {
+    const parsed = patchBetSchema.safeParse({ result: 'cash_out', profitOverride: 7.3 });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.result).toBe('cash_out');
+    expect(parsed.data.profitOverride).toBe(7.3);
+  });
+
+  it('requires a non-null profit override when the result is cash_out', () => {
     expect(patchBetSchema.safeParse({ result: 'cash_out' }).success).toBe(false);
+    expect(patchBetSchema.safeParse({ result: 'cash_out', profitOverride: null }).success).toBe(
+      false,
+    );
+  });
+
+  it('rejects a non-null profit override for every non-cash_out result', () => {
+    for (const result of ['pending', 'win', 'half_win', 'push', 'half_loss', 'loss'] as const) {
+      expect(patchBetSchema.safeParse({ result, profitOverride: 7.3 }).success).toBe(false);
+    }
+  });
+
+  it('accepts an override-only patch, including a zero override', () => {
+    expect(patchBetSchema.safeParse({ profitOverride: 7.3 }).success).toBe(true);
+    expect(patchBetSchema.safeParse({ profitOverride: 0 }).success).toBe(true);
+  });
+
+  it('rejects an override of null as the only field', () => {
+    expect(patchBetSchema.safeParse({ profitOverride: null }).success).toBe(false);
+  });
+
+  it('rounds the profit override to 2dp', () => {
+    const parsed = patchBetSchema.safeParse({ result: 'cash_out', profitOverride: 7.305 });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.profitOverride).toBe(7.31);
+  });
+
+  it('rejects non-finite profit overrides', () => {
+    expect(
+      patchBetSchema.safeParse({ result: 'cash_out', profitOverride: Number.NaN }).success,
+    ).toBe(false);
+    expect(
+      patchBetSchema.safeParse({
+        result: 'cash_out',
+        profitOverride: Number.POSITIVE_INFINITY,
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects total odds above the cap when legs are replaced', () => {

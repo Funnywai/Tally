@@ -26,6 +26,7 @@ export interface UpdateBetData {
   readonly stake?: number | undefined;
   readonly result?: BetResult | undefined;
   readonly legs?: readonly BetLegInput[] | undefined;
+  readonly profitOverride?: number | null | undefined;
 }
 
 async function insertLegs(
@@ -149,25 +150,6 @@ export async function updateBet(db: Db, id: string, data: UpdateBetData): Promis
       return null;
     }
 
-    if (row.result === 'cash_out') {
-      if (data.stake !== undefined || data.result !== undefined || data.legs !== undefined) {
-        throw new AppError('VALIDATION', '派彩快注單不可修改注碼、結果或注項');
-      }
-      await client.query(
-        `update bets
-            set bet_date = $2,
-                updated_at = now()
-          where id = $1`,
-        [id, data.date ?? row.bet_date],
-      );
-
-      const item = await getBet(client, id);
-      if (item === null) {
-        throw new Error('Updated bet could not be read back');
-      }
-      return item;
-    }
-
     const legs =
       data.legs ??
       (await loadBetLegs(client, id)).map((leg) => ({
@@ -178,11 +160,19 @@ export async function updateBet(db: Db, id: string, data: UpdateBetData): Promis
       }));
     const stake = data.stake ?? Number(row.stake);
     const result = data.result ?? row.result;
-    if (result === 'cash_out') {
-      throw new AppError('VALIDATION', '只可透過匯入建立派彩快注單');
-    }
     const totalOdds = computeTotalOdds(legs);
-    const profit = computeProfit(stake, totalOdds, result);
+
+    let profit: number | null;
+    if (result === 'cash_out') {
+      const storedProfit =
+        row.result === 'cash_out' && row.profit !== null ? Number(row.profit) : null;
+      profit = resolveCashOutProfit(data.profitOverride ?? storedProfit);
+    } else {
+      if (data.profitOverride !== null && data.profitOverride !== undefined) {
+        throw new AppError('VALIDATION', '只有派彩快注單可提供實際盈虧');
+      }
+      profit = computeProfit(stake, totalOdds, result);
+    }
 
     await client.query(
       `update bets
